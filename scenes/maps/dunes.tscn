@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://do3f8sq8oxqjl"]
+[gd_scene format=3]
 
 [ext_resource type="ArrayMesh" path="res://assets/models/structures/pad_bright.res" id="1_mqdf7"]
 [ext_resource type="ArrayMesh" path="res://assets/models/structures/pad_marker.res" id="2_m0abx"]
