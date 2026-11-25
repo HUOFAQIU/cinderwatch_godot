@@ -1,4 +1,4 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dbyokdw7xcwvu"]
 
 [ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/archer_2_p0.res" id="1_0qh5p"]
 [ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/archer_2_p1.res" id="2_7qni4"]

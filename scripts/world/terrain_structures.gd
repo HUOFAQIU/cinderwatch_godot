@@ -242,207 +242,44 @@ static func _keep_world(t: CWTerrain, kp: Vector2, ky: float, yaw: float, lx: fl
 
 
 static func _build_keep_and_cave(t: CWTerrain) -> void:
-	# A1: Full 5-tier Ruined Keep & 7.3m Independent Beacon Tower (32-props.js:237-295)
 	var kp: Vector2 = t.layout["keep"]
 	var ky := t.height_at(kp.x, kp.y)
 	var road: Array[Vector2] = t.layout["road"]
 	var rd := (road[maxi(0, road.size() - 2)] - kp).normalized()
 	var yaw := atan2(rd.x, rd.y)
-	var st: Color = t.pal["stone"]
-	var sdk: Color = t.pal["stoneD"]
-	var sl: Color = t.pal["stoneL"]
-	var iron: Color = t.pal["iron"]
-	var wd: Color = t.pal["woodD"]
-	var blk := Color(0.03, 0.035, 0.05)
-	var keep_soup := CWGfx.Soup.new()
 
-	# Plinth (10.6 x 0.5 x 6.0) + 9 front steps
-	keep_soup.add_box(Vector3(10.6, 0.5, 6.0), Vector3(0, -0.2, -2.3), sdk, CWGfx.L_MASON, 0.9)
-	for k in range(9):
-		keep_soup.add_box(Vector3(1.1, 0.16, 0.55), Vector3(-4.4 + float(k) * 1.1, 0.1, 0.85), st.lerp(sl, float(k % 2) * 0.35), CWGfx.L_MASON, 0.88)
-
-	# Broken Right Bastion Tower (2.3, -0.15, w=1.95, h=3.9)
-	var tx := 2.3
-	var tz := -0.15
-	var tw := 1.95
-	var th := 3.9
-	keep_soup.add_box(Vector3(tw + 0.34, 0.6, tw + 0.34), Vector3(tx, 0.3, tz), sdk, CWGfx.L_MASON, 0.9)
-	keep_soup.add_box(Vector3(tw, th, tw), Vector3(tx, th * 0.5, tz), st, CWGfx.L_MASON, 0.88)
-	for c in range(4):
-		keep_soup.add_box(Vector3(tw + 0.04, 0.22, tw + 0.04), Vector3(tx, 0.9 + float(c) * (th - 1.2) / 3.2, tz), sl, CWGfx.L_MASON, 0.88)
-	keep_soup.add_box(Vector3(tw + 0.36, 0.3, tw + 0.36), Vector3(tx, th + 0.12, tz), sl, CWGfx.L_MASON, 0.86)
-	keep_soup.add_box(Vector3(0.14, 0.8, 0.1), Vector3(tx, th * 0.62, tz + tw * 0.5 + 0.02), blk, CWGfx.L_PLAIN, 0.95)
-	for sx in [-1.0, 1.0]:
-		for sz in [-1.0, 1.0]:
-			keep_soup.add_box(Vector3(0.42, 0.44, 0.42), Vector3(tx + sx * (tw * 0.5 - 0.05), th + 0.48, tz + sz * (tw * 0.5 - 0.05)), st, CWGfx.L_MASON, 0.88)
-
-	# Gatehouse + 9-stone Arch + 5-bar Iron Portcullis + 4 Battlements
-	keep_soup.add_box(Vector3(2.7, 1.25, 1.3), Vector3(0, 3.2, -0.15), st, CWGfx.L_MASON, 0.88)
-	for k in range(9):
-		var ang := PI * float(k) / 8.0
-		keep_soup.add_box(Vector3(0.4, 0.3, 1.4), Vector3(cos(ang) * 1.12, 1.5 + sin(ang) * 1.12, -0.15), sl, CWGfx.L_MASON, 0.86, Vector3(0, 0, ang - PI * 0.5))
+	# Register 2 gatehouse wall lanterns as env_lights + keep_fires
 	for sg: float in [-1.0, 1.0]:
-		keep_soup.add_box(Vector3(0.5, 0.9, 1.3), Vector3(sg * 1.12, 2.3, -0.15), st, CWGfx.L_MASON, 0.88)
-		keep_soup.add_box(Vector3(0.3, 1.5, 1.34), Vector3(sg * 1.2, 0.75, -0.15), sl, CWGfx.L_MASON, 0.88)
-	keep_soup.add_box(Vector3(2.2, 2.7, 0.2), Vector3(0, 1.35, -0.7), blk, CWGfx.L_PLAIN, 0.96)
-	keep_soup.add_box(Vector3(2.2, 0.2, 1.2), Vector3(0, 2.75, -0.2), blk, CWGfx.L_PLAIN, 0.96)
-	for p_i in range(5):
-		var px := -0.8 + float(p_i) * 0.4
-		keep_soup.add_box(Vector3(0.07, 0.95, 0.07), Vector3(px, 2.15, 0.3), iron, CWGfx.L_METAL, 0.5)
-		keep_soup.add_cone(0.06, 0.16, Vector3(px, 1.6, 0.3), iron, 4, CWGfx.L_METAL, 0.5, Vector3(PI, 0, 0))
-	keep_soup.add_box(Vector3(2.0, 0.07, 0.07), Vector3(0, 1.95, 0.3), iron, CWGfx.L_METAL, 0.5)
-	keep_soup.add_box(Vector3(2.0, 0.07, 0.07), Vector3(0, 2.40, 0.3), iron, CWGfx.L_METAL, 0.5)
-	keep_soup.add_box(Vector3(2.9, 0.2, 1.5), Vector3(0, 3.9, -0.15), sl, CWGfx.L_MASON, 0.86)
-	for bx_c in [-1.02, -0.34, 0.34, 1.02]:
-		keep_soup.add_box(Vector3(0.42, 0.44, 0.42), Vector3(bx_c, 4.12, 0.3), sl, CWGfx.L_MASON, 0.88)
-
-	# Stepped Left & Right Curtain Walls + Rear Wall
-	var left_h := [3.1, 3.1, 2.3, 1.3, 0.6]
-	for k in range(left_h.size()):
-		var wh: float = left_h[k]
-		var wx_l := -3.3 - (float(k) + 0.5) * 1.35
-		keep_soup.add_box(Vector3(1.35, wh, 0.95), Vector3(wx_l, wh * 0.5, -0.35), st, CWGfx.L_MASON, 0.9)
-		if wh > 2.4:
-			keep_soup.add_box(Vector3(1.45, 0.2, 1.1), Vector3(wx_l, wh + 0.1, -0.35), sl, CWGfx.L_MASON, 0.88)
-			keep_soup.add_box(Vector3(0.4, 0.42, 0.3), Vector3(wx_l - 0.4, wh + 0.4, 0.05), sl, CWGfx.L_MASON, 0.88)
-			keep_soup.add_box(Vector3(0.4, 0.42, 0.3), Vector3(wx_l + 0.4, wh + 0.4, 0.05), sl, CWGfx.L_MASON, 0.88)
-	var right_h := [3.0, 2.0, 1.1]
-	for k in range(right_h.size()):
-		var wh: float = right_h[k]
-		var wx_r := 3.3 + (float(k) + 0.5) * 1.35
-		keep_soup.add_box(Vector3(1.35, wh, 0.95), Vector3(wx_r, wh * 0.5, -0.35), st, CWGfx.L_MASON, 0.9)
-		if wh > 2.4:
-			keep_soup.add_box(Vector3(1.45, 0.2, 1.1), Vector3(wx_r, wh + 0.1, -0.35), sl, CWGfx.L_MASON, 0.88)
-	var rear_h := [3.4, 2.4, 3.6, 1.6, 2.8]
-	for k in range(rear_h.size()):
-		var wh: float = rear_h[k]
-		var wx_b := -4.7 + float(k) * 1.3
-		keep_soup.add_box(Vector3(1.3, wh, 0.7), Vector3(wx_b, wh * 0.5, -4.7), sdk, CWGfx.L_MASON, 0.92)
-		if wh > 3.0:
-			keep_soup.add_box(Vector3(0.36, 1.0, 0.74), Vector3(wx_b, wh * 0.62, -4.7), blk, CWGfx.L_PLAIN, 0.95)
-	keep_soup.add_box(Vector3(0.7, 2.6, 3.4), Vector3(-5.0, 1.3, -2.8), sdk, CWGfx.L_MASON, 0.9)
-	keep_soup.add_cyl(1.5, 1.4, 2.4, Vector3(2.4, 1.2, -3.6), sdk, 8, CWGfx.L_MASON, 0.9)
-	# Timber beams & red keep banner
-	for k in range(4):
-		keep_soup.add_seg(Vector3(-4.6, 2.5 - float(k) * 0.12, -4.3 + float(k) * 0.7), Vector3(-1.6, 1.2, -4.0 + float(k) * 0.7), 0.08, 0.07, wd, 4, CWGfx.L_WOOD, 0.9)
-	keep_soup.add_box(Vector3(0.9, 1.55, 0.05), Vector3(2.3, 2.45, 0.85), t.pal["clothR"], CWGfx.L_CLOTH, 0.86, Vector3.ZERO, 0.5)
-
-	# 2 Gatehouse Wall Lanterns (also registered as env_lights + keep_fires)
-	for sg: float in [-1.0, 1.0]:
-		keep_soup.add_seg(Vector3(sg * 1.32, 1.9, 0.52), Vector3(sg * 1.32, 2.1, 0.92), 0.035, 0.03, iron, 4, CWGfx.L_METAL, 0.5)
-		keep_soup.add_cyl(0.09, 0.14, 0.16, Vector3(sg * 1.32, 2.14, 0.94), Color(1.0, 0.56, 0.18), 6, CWGfx.L_PLAIN, 0.35, Vector3.ZERO, 0.0, 1.6)
 		var lpos := _keep_world(t, kp, ky, yaw, sg * 1.32, 2.3, 0.94)
 		t.keep_fires.append(lpos)
 		if t.env_lights.size() < 2:
 			t.env_lights.append({"pos": lpos, "col": Color(1.0, 0.55, 0.20), "energy": 1.7, "range": 9.0, "flick": true})
 
-	# Independent 7.3m Great Beacon Tower (bx = -2.6, bz = -0.35, bh = 7.3)
-	# Put beacon tower into its own non-shadow-casting mesh (matching 31-terrain.js:369 where beaconTower is not in B.caster)
-	# so its wide 1.82m cap & brazier never cast a giant circular umbrella shadow blocking beacon_light from the Keep & road!
-	var bx := -2.6
-	var bz := -0.35
-	var bh_t := 7.3
-	var btop_soup := CWGfx.Soup.new()
-	btop_soup.add_cyl(1.9, 1.6, 1.3, Vector3(bx, 0.65, bz), sdk, 10, CWGfx.L_MASON, 0.9)
-	btop_soup.add_cyl(1.52, 1.37, bh_t, Vector3(bx, bh_t * 0.5, bz), st, 10, CWGfx.L_MASON, 0.88)
-	for c in range(6):
-		var cr := 1.54 - float(c) * 0.027
-		btop_soup.add_cyl(cr, cr, 0.2, Vector3(bx, 1.7 + float(c) * 1.0, bz), sl, 10, CWGfx.L_MASON, 0.86)
-	btop_soup.add_cyl(1.42, 1.79, 0.55, Vector3(bx, bh_t - 0.15, bz), sl, 10, CWGfx.L_MASON, 0.86)
-	btop_soup.add_cyl(1.82, 1.82, 0.22, Vector3(bx, bh_t + 0.22, bz), st, 10, CWGfx.L_MASON, 0.88)
-	for k in range(7):
-		if k == 1:
-			continue
-		var a := float(k) * TAU / 7.0
-		btop_soup.add_box(Vector3(0.6, 0.5, 0.32), Vector3(bx + cos(a) * 1.6, bh_t + 0.58, bz + sin(a) * 1.6), sl, CWGfx.L_MASON, 0.88, Vector3(0, -a + PI * 0.5, 0))
-	for k in range(4):
-		var a := float(k) * PI * 0.5 + 0.4
-		btop_soup.add_box(Vector3(0.14, 0.9, 0.14), Vector3(bx + cos(a) * 1.44, bh_t * (0.4 + float(k & 1) * 0.22), bz + sin(a) * 1.44), blk, CWGfx.L_PLAIN, 0.95)
-	for k in range(5):
-		var a := float(k) * TAU / 5.0
-		btop_soup.add_seg(Vector3(bx + cos(a) * 1.4, bh_t - 0.9, bz + sin(a) * 1.4), Vector3(bx + cos(a) * 2.1, bh_t - 0.1, bz + sin(a) * 2.1), 0.07, 0.06, wd, 4, CWGfx.L_WOOD, 0.9)
-	# Great Beacon Brazier + 4 Burning Logs (structure top ~8.56, flame anchor ky + 8.75)
-	btop_soup.add_cyl(0.6, 0.6, 0.55, Vector3(bx, bh_t + 0.6, bz), sdk, 8, CWGfx.L_MASON, 0.9)
-	btop_soup.add_cyl(0.72, 1.01, 0.42, Vector3(bx, bh_t + 1.06, bz), iron, 10, CWGfx.L_METAL, 0.5)
-	for k in range(4):
-		var a := float(k) * PI * 0.5 + 0.3
-		btop_soup.add_seg(Vector3(bx + cos(a) * 0.72, bh_t + 0.35, bz + sin(a) * 0.72), Vector3(bx + cos(a) * 0.96, bh_t + 1.22, bz + sin(a) * 0.96), 0.04, 0.04, iron, 4, CWGfx.L_METAL, 0.5)
-		btop_soup.add_seg(Vector3(bx + cos(a) * 0.65, bh_t + 1.28, bz + sin(a) * 0.65), Vector3(bx - cos(a) * 0.2, bh_t + 1.48, bz - sin(a) * 0.2), 0.1, 0.09, t.pal["bark"], 5, CWGfx.L_BARK, 0.92)
-	btop_soup.add_cyl(0.9, 0.85, 0.12, Vector3(bx, bh_t + 1.24, bz), Color(1.0, 0.48, 0.12), 10, CWGfx.L_PLAIN, 0.35, Vector3.ZERO, 0.0, 0.42)
-	btop_soup.add_box(Vector3(0.9, 2.2, 0.05), Vector3(bx, 4.1, bz + 1.52), t.pal["clothR"], CWGfx.L_CLOTH, 0.86, Vector3.ZERO, 0.55)
-
+	# Keep & Great Beacon Tower (non-shadow-casting so beacon_light illuminates courtyard cleanly)
 	var keep_mi := MeshInstance3D.new()
-	keep_mi.mesh = keep_soup.build()
+	keep_mi.mesh = load("res://assets/models/structures/keep.res") as Mesh
 	keep_mi.material_override = t.gfx.mat_world
 	keep_mi.rotation.y = yaw
 	keep_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	t._attach_to_chunk(keep_mi, Vector3(kp.x, ky, kp.y))
 
 	var btop_mi := MeshInstance3D.new()
-	btop_mi.mesh = btop_soup.build()
+	btop_mi.mesh = load("res://assets/models/structures/beacon_top.res") as Mesh
 	btop_mi.material_override = t.gfx.mat_world
 	btop_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	btop_mi.rotation.y = yaw
 	t._attach_to_chunk(btop_mi, Vector3(kp.x, ky, kp.y))
-	t.beacon_pos = _keep_world(t, kp, ky, yaw, bx, bh_t + 1.45, bz)
+	t.beacon_pos = _keep_world(t, kp, ky, yaw, -2.6, 8.75, -0.35)
 
-	# Add 3rd env light at waterfall/bridge for atmospheric mist glow
 	if t.has_waterfall and t.env_lights.size() < 3:
-		t.env_lights.append({"pos": t.waterfall_pos + Vector3(0, 3.8, 0), "col": Color(0.55, 0.78, 1.0) if String(t.bio.get("key", "")) != "ember" else Color(1.0, 0.38, 0.12), "energy": 1.4, "range": 9.0, "flick": String(t.bio.get("key", "")) == "ember"})
+		var is_em := String(t.bio.get("key", "")) == "ember"
+		t.env_lights.append({"pos": t.waterfall_pos + Vector3(0, 3.8, 0), "col": Color(1.0, 0.38, 0.12) if is_em else Color(0.55, 0.78, 1.0), "energy": 1.4, "range": 9.0, "flick": is_em})
 
 	# Monster Cave arch at road start
 	var cv: Vector2 = t.layout["cave"]
 	var cy := t.height_at(cv.x, cv.y)
-	# Exact 32-props.js:301-318 monumental 21-boulder mountain cave + hanging stalactites & Frostfall icicles
-	var cave_soup := CWGfx.Soup.new()
-	var crng := CWUtil.Rng.new(t.seed_val + 613)
-	var rk_c := func(rad: float, lp: Vector3, sq: float = 1.0) -> void:
-		var col_r: Color = sdk.lerp(st, crng.rr(0.0, 0.7))
-		cave_soup.add_rock(rad, lp, col_r, crng.ri(1, 9999), CWGfx.L_ROCK, 0.94, Vector3(1.0, sq, 1.0))
-	for sg: float in [-1.0, 1.0]:
-		rk_c.call(1.35, Vector3(0.10, 0.65, sg * 2.45), 1.0)
-		rk_c.call(1.15, Vector3(0.20, 1.90, sg * 2.30), 1.0)
-		rk_c.call(0.98, Vector3(0.20, 2.95, sg * 1.95), 0.95)
-		rk_c.call(0.65, Vector3(1.00, 0.30, sg * 2.15), 0.85)
-		rk_c.call(0.46, Vector3(1.50, 0.20, sg * 1.95), 0.80)
-	rk_c.call(1.45, Vector3(0.15, 3.65, 0.0), 0.58)
-	rk_c.call(1.15, Vector3(0.25, 3.55, -1.05), 0.62)
-	rk_c.call(1.15, Vector3(0.25, 3.55, 1.05), 0.62)
-	for k in range(4):
-		rk_c.call(1.80, Vector3(-0.9 - float(k) * 0.75, 4.10 + float(k) * 0.30, crng.rr(-0.55, 0.55)), 0.68)
-	for zz_s: float in [-1.25, -0.75, -0.20, 0.35, 0.90, 1.30]:
-		cave_soup.add_cone(0.15 + crng.rr(0.0, 0.06), 0.45 + crng.rr(0.0, 0.50), Vector3(0.30 + crng.rr(0.0, 0.20), 2.85, zz_s), sl * 0.9, 5, CWGfx.L_ROCK, 0.92, Vector3(PI, 0.0, 0.0))
-	if String(t.bio.get("key", "")) == "frost":
-		for zi in range(13):
-			var zz_i := -1.35 + float(zi) * 0.22
-			var ih := crng.rr(0.22, 0.75)
-			cave_soup.add_cone(0.05 + crng.rr(0.0, 0.03), ih, Vector3(0.62 + crng.rr(0.0, 0.10), 2.90 - ih * 0.5, zz_i), Color(0.54, 0.86, 1.0), 5, CWGfx.L_PLAIN, 0.14, Vector3(PI, 0.0, 0.0), 0.0, 0.02)
-	cave_soup.add_box(Vector3(3.8, 0.22, 3.7), Vector3(-1.9, 3.05, 0.0), blk, CWGfx.L_PLAIN, 0.98)
-	cave_soup.add_box(Vector3(0.24, 3.4, 3.7), Vector3(-3.45, 1.50, 0.0), blk, CWGfx.L_PLAIN, 0.98)
-	for sg: float in [-1.0, 1.0]:
-		cave_soup.add_box(Vector3(3.8, 3.2, 0.22), Vector3(-1.9, 1.50, sg * 1.82), sdk.darkened(0.65), CWGfx.L_ROCK, 0.96)
+	var c_path := "res://assets/models/structures/cave_frost.res" if String(t.bio.get("key", "")) == "frost" else "res://assets/models/structures/cave.res"
 	var cave_mi := MeshInstance3D.new()
-	cave_mi.mesh = cave_soup.build()
+	cave_mi.mesh = load(c_path) as Mesh
 	cave_mi.material_override = t.gfx.mat_world
 	t._attach_to_chunk(cave_mi, Vector3(cv.x + 2.8, cy, cv.y))
-
-
-
-	# Giant ribcage skeleton landmark
-	var rx := clampf(kp.x + 1.2, -CWLayout.BH + 3.0, CWLayout.BH - 2.5)
-	var rz := clampf(kp.y - 5.2, -CWLayout.BH + 3.0, CWLayout.BH - 3.0)
-	var ry := t.height_at(rx, rz)
-	var rib_soup := CWGfx.Soup.new()
-	var bone_col: Color = t.pal["bone"]
-	rib_soup.add_seg(Vector3(-1.3, 0.22, 0), Vector3(1.3, 0.16, 0.1), 0.11, 0.08, bone_col, 5, CWGfx.L_PLAIN, 0.85)
-	for r_i in range(5):
-		var xo := -0.95 + float(r_i) * 0.45
-		var rad := 0.72 - absf(float(r_i - 2)) * 0.12
-		for sg: float in [-1.0, 1.0]:
-			rib_soup.add_seg(Vector3(xo, 0.2, 0), Vector3(xo - 0.1, 0.75 * rad, sg * 0.55 * rad), 0.06, 0.04, bone_col, 4, CWGfx.L_PLAIN, 0.85)
-			rib_soup.add_seg(Vector3(xo - 0.1, 0.75 * rad, sg * 0.55 * rad), Vector3(xo - 0.15, 0.18, sg * 0.78 * rad), 0.04, 0.025, bone_col, 4, CWGfx.L_PLAIN, 0.85)
-	var rib_mi := MeshInstance3D.new()
-	rib_mi.mesh = rib_soup.build()
-	rib_mi.material_override = t.gfx.mat_world
-	rib_mi.rotation.y = 0.55
-	t._attach_to_chunk(rib_mi, Vector3(rx, ry, rz))
