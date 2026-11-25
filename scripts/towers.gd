@@ -312,7 +312,7 @@ func update_towers(dt: float, monsters_sys: CWMonsters, dmg_mul: float) -> void:
 							ar["cd"] = 0.3
 					ar["yaw"] = ayaw
 					ar["draw"] = adraw
-					rig.draw_humanoid(Vector3(ax, deck_y, az), ayaw, 0.72, 0.0, 0.0, Color(0.24, 0.42, 0.72), Color(0.86, 0.78, 0.68), 0.0, {"bow": true, "draw": adraw})
+					rig.push_archer_gpu(Vector3(ax, deck_y, az), ayaw, adraw)
 			"bombard":
 				var targets := monsters_sys.find_targets(float(t["x"]), float(t["z"]), float(def["range"][lvl]), false, true, float(def["min_range"]), 1)
 				var base_yaw := float(t["node"].rotation.y)

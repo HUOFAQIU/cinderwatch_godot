@@ -226,7 +226,7 @@ func _finish_boss(m: CWMonsterUnit) -> void:
 		return
 	m.dead = true
 	var pos := Vector3(m.x, m.y, m.z)
-	rig.shatter_from_call(func(): _draw_one(m), Vector3(0, 3.8, 0))
+	rig.shatter_unit(pos, m.unit_scale, m.col, Vector3(0, 3.8, 0), true)
 	fx.spawn_dust(pos + Vector3(0, 0.5, 0), 26, 4.5, 1.6, 0.75)
 	fx.spawn_explosion(pos, 1.25)
 	fx.spawn_decal(pos, 2.6, Color(0.04, 0.03, 0.03, 0.72), 24.0)
@@ -259,7 +259,7 @@ func _kill(m: CWMonsterUnit, dir: Vector3, tower = null) -> void:
 
 	var pos := Vector3(m.x, m.y, m.z)
 	var impulse := dir.normalized() * 3.5 if dir.length_squared() > 0.01 else Vector3(0, 2.5, 0)
-	rig.shatter_from_call(func(): _draw_one(m), impulse)
+	rig.shatter_unit(pos, m.unit_scale, m.col, impulse, m.is_boss)
 	fx.spawn_sparks(pos + Vector3(0, 0.5, 0), 12 if bool(def.get("boss", false)) else 5, 4.5, m.col)
 	fx.spawn_coins(pos, 18 if bool(def.get("boss", false)) else clampi(int(floorf(float(def["bounty"]) / 3.0)), 1, 5))
 
@@ -579,52 +579,6 @@ func update_monsters(dt: float) -> void:
 		i -= 1
 	if do_grid_pass:
 		_rebuild_grid()
-
-
-func _draw_one(m: CWMonsterUnit) -> void:
-	var def: Dictionary = m.def
-	var pos := Vector3(m.x, m.y, m.z)
-	var col: Color = m.col
-	if bool(m.faded):
-		col = col.lerp(Color(0.2, 0.9, 1.0), 0.55)
-	elif float(m.slow_t) > 0.0:
-		col = col.lerp(Color(0.45, 0.85, 1.0), 0.4)
-
-	var rig_kind: String = def["rig"]
-	match rig_kind:
-		"human":
-			rig.draw_humanoid(pos, float(m.yaw), float(def["scale"]), float(m.phase), float(m.swing), col, col.lightened(0.15), float(m.flash), {
-				"heavy": bool(def.get("heavy", false)),
-				"weapon": bool(def.get("weapon", false)),
-				"greatsword": bool(def.get("greatsword", false)),
-				"shield": bool(def.get("shield", false)),
-				"keg": bool(def.get("keg", false)),
-				"crown": bool(def.get("crown", false)),
-				"hood": bool(def.get("hood", false)),
-				"horns": bool(def.get("horns", false)),
-				"staff": bool(def.get("staff", false)),
-				"drum": bool(def.get("drum", false)),
-				"iceclub": bool(def.get("iceclub", false)),
-				"torch": bool(m.torch),
-				"mv": float(m.mv),
-				"flinch": float(m.flinch),
-				"cast": float(m.cast),
-				"skel": bool(def.get("skel", false)),
-				"wraith": String(m.type) == "wraith",
-				"armor_suit": bool(def.get("armor_suit", false)),
-				"wraps": bool(def.get("wraps", false)),
-				"eye": def.get("eye", Color(2.8, 1.2, 0.3)),
-			})
-		"quad":
-			rig.draw_quadruped(pos, float(m.yaw), float(def["scale"]), float(m.phase), col, float(m.flash), def.get("eye", Color.BLACK), float(m.swing))
-		"slime":
-			rig.draw_slime(pos, float(m.yaw), float(def["scale"]), float(m.phase), col, float(m.flash), def.get("eye", Color.BLACK), float(m.swing), String(m.type) == "toad")
-		"fly":
-			rig.draw_flyer(pos, float(m.yaw), float(def["scale"]), float(m.phase) * 2.0, col, float(m.flash), false, def.get("eye", Color.BLACK))
-		"wisp":
-			rig.draw_flyer(pos, float(m.yaw), float(def["scale"]), float(m.phase), col, float(m.flash), true, def.get("eye", Color.BLACK))
-		"bug":
-			rig.draw_bug(pos, float(m.yaw), float(def["scale"]), float(m.phase), col, float(m.flash), def.get("eye", Color.BLACK), float(m.swing))
 
 
 func clear_all() -> void:

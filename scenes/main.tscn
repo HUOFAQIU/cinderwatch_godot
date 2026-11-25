@@ -2,11 +2,11 @@
 
 [ext_resource type="Script" uid="uid://c4hiqoclp2nxn" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://dgw8jqhj3mfab" path="res://scripts/terrain.gd" id="2_terrain"]
-[ext_resource type="Script" uid="uid://wcewnu2o3hgq" path="res://scripts/rig.gd" id="3_rig"]
+[ext_resource type="Script" uid="uid://b7xu5ow703nmx" path="res://scripts/rig.gd" id="3_rig"]
 [ext_resource type="Script" uid="uid://24y072nxgi8i" path="res://scripts/fx.gd" id="4_fx"]
-[ext_resource type="Script" uid="uid://dabk64xl073hv" path="res://scripts/towers.gd" id="5_towers"]
+[ext_resource type="Script" uid="uid://cvucfq22u7dp8" path="res://scripts/towers.gd" id="5_towers"]
 [ext_resource type="Script" uid="uid://d14oqwq58bi7u" path="res://scripts/audio.gd" id="6_audio"]
-[ext_resource type="Script" uid="uid://btr1yje5qehm" path="res://scripts/monsters.gd" id="7_monsters"]
+[ext_resource type="Script" uid="uid://eutb8nc64hnq" path="res://scripts/monsters.gd" id="7_monsters"]
 [ext_resource type="Script" uid="uid://oip8amldx5b6" path="res://scripts/game.gd" id="8_game"]
 [ext_resource type="PackedScene" path="res://scenes/ui.tscn" id="9_ui_scene"]
 
@@ -17,23 +17,23 @@ glow_intensity = 0.6
 glow_strength = 0.86
 glow_hdr_threshold = 1.32
 
-[node name="Main" type="Node" unique_id=1232926240]
+[node name="Main" type="Node" unique_id=1095127448]
 script = ExtResource("1_main")
 
-[node name="SubViewport" type="SubViewport" parent="." unique_id=619650859]
+[node name="SubViewport" type="SubViewport" parent="." unique_id=1795631872]
 unique_name_in_owner = true
 use_hdr_2d = true
 size = Vector2i(960, 540)
 render_target_update_mode = 4
 
-[node name="World" type="Node3D" parent="SubViewport" unique_id=1763462796]
+[node name="World" type="Node3D" parent="SubViewport" unique_id=2013420062]
 unique_name_in_owner = true
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="SubViewport/World" unique_id=1771538148]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="SubViewport/World" unique_id=2145695021]
 unique_name_in_owner = true
 environment = SubResource("Environment_main")
 
-[node name="Camera3D" type="Camera3D" parent="SubViewport/World" unique_id=1596466522]
+[node name="Camera3D" type="Camera3D" parent="SubViewport/World" unique_id=1389718895]
 unique_name_in_owner = true
 projection = 1
 current = true
@@ -41,23 +41,23 @@ size = 25.0
 near = 1.0
 far = 210.0
 
-[node name="Terrain" type="Node3D" parent="SubViewport/World" unique_id=1464963041]
+[node name="Terrain" type="Node3D" parent="SubViewport/World" unique_id=1127074292]
 unique_name_in_owner = true
 script = ExtResource("2_terrain")
 
-[node name="Rig" type="Node3D" parent="SubViewport/World" unique_id=1760427713]
+[node name="Rig" type="Node3D" parent="SubViewport/World" unique_id=963243757]
 unique_name_in_owner = true
 script = ExtResource("3_rig")
 
-[node name="Fx" type="Node3D" parent="SubViewport/World" unique_id=1789089139]
+[node name="Fx" type="Node3D" parent="SubViewport/World" unique_id=782203554]
 unique_name_in_owner = true
 script = ExtResource("4_fx")
 
-[node name="Towers" type="Node3D" parent="SubViewport/World" unique_id=1604993435]
+[node name="Towers" type="Node3D" parent="SubViewport/World" unique_id=147676895]
 unique_name_in_owner = true
 script = ExtResource("5_towers")
 
-[node name="PostProcessRect" type="TextureRect" parent="." unique_id=1845571559]
+[node name="PostProcessRect" type="TextureRect" parent="." unique_id=423475427]
 unique_name_in_owner = true
 texture_filter = 1
 anchors_preset = 15
@@ -67,17 +67,17 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Audio" type="Node" parent="." unique_id=911486244]
+[node name="Audio" type="Node" parent="." unique_id=782226301]
 unique_name_in_owner = true
 script = ExtResource("6_audio")
 
-[node name="Monsters" type="Node" parent="." unique_id=82343598]
+[node name="Monsters" type="Node" parent="." unique_id=345532428]
 unique_name_in_owner = true
 script = ExtResource("7_monsters")
 
-[node name="Game" type="Node" parent="." unique_id=1329445631]
+[node name="Game" type="Node" parent="." unique_id=260063724]
 unique_name_in_owner = true
 script = ExtResource("8_game")
 
-[node name="UI" parent="." unique_id=88883184 instance=ExtResource("9_ui_scene")]
+[node name="UI" parent="." unique_id=2065244403 instance=ExtResource("9_ui_scene")]
 unique_name_in_owner = true
