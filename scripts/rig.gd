@@ -82,9 +82,19 @@ class UnitBatch:
 	func begin() -> void:
 		count = 0
 
+	func _grow() -> void:
+		var new_cap := mini(cap * 2, 4096)
+		if new_cap <= cap:
+			return
+		cap = new_cap
+		buf.resize(cap * 20)
+		mm.instance_count = cap
+
 	func push(x: float, y: float, z: float, yaw: float, sc: float, col: Color, phase: float, swing: float, flash: float, mv: float) -> void:
 		if count >= cap:
-			return
+			_grow()
+			if count >= cap:
+				return
 		var off := count * 20
 		var c := cos(yaw) * sc
 		var s := sin(yaw) * sc
@@ -92,6 +102,21 @@ class UnitBatch:
 		buf[off + 4] = 0.0; buf[off + 5] = sc; buf[off + 6] = 0.0; buf[off + 7] = y
 		buf[off + 8] = -s; buf[off + 9] = 0.0; buf[off + 10] = c; buf[off + 11] = z
 		buf[off + 12] = col.r; buf[off + 13] = col.g; buf[off + 14] = col.b; buf[off + 15] = col.a
+		buf[off + 16] = phase; buf[off + 17] = swing; buf[off + 18] = flash; buf[off + 19] = mv
+		count += 1
+
+	func push_cs(x: float, y: float, z: float, cy: float, sy: float, sc: float, cr: float, cg: float, cb: float, phase: float, swing: float, flash: float, mv: float) -> void:
+		if count >= cap:
+			_grow()
+			if count >= cap:
+				return
+		var off := count * 20
+		var c := cy * sc
+		var s := sy * sc
+		buf[off] = c; buf[off + 1] = 0.0; buf[off + 2] = s; buf[off + 3] = x
+		buf[off + 4] = 0.0; buf[off + 5] = sc; buf[off + 6] = 0.0; buf[off + 7] = y
+		buf[off + 8] = -s; buf[off + 9] = 0.0; buf[off + 10] = c; buf[off + 11] = z
+		buf[off + 12] = cr; buf[off + 13] = cg; buf[off + 14] = cb; buf[off + 15] = 1.0
 		buf[off + 16] = phase; buf[off + 17] = swing; buf[off + 18] = flash; buf[off + 19] = mv
 		count += 1
 
@@ -247,7 +272,7 @@ func _bake_unit_mesh(draw_fn: Callable) -> ArrayMesh:
 	return am
 
 
-func _get_or_bake_unit_batch(key: String, draw_fn: Callable, cap: int = 2048, p_is_boss: bool = false) -> UnitBatch:
+func _get_or_bake_unit_batch(key: String, draw_fn: Callable, cap: int = 128, p_is_boss: bool = false) -> UnitBatch:
 	if unit_batches.has(key):
 		return unit_batches[key] as UnitBatch
 	var mesh := _bake_unit_mesh(draw_fn)
@@ -725,7 +750,7 @@ func bind_monster_batch(m: CWMonsterUnit) -> UnitBatch:
 	var def: Dictionary = m.def
 	var base_c: Color = def["col"]
 	var rig_k: String = def["rig"]
-	var cap: int = 64 if m.is_boss else 2048
+	var cap: int = 16 if m.is_boss else 128
 	m.ub = _get_or_bake_unit_batch(key, func():
 		match rig_k:
 			"human":
@@ -762,30 +787,32 @@ func bind_monster_batch(m: CWMonsterUnit) -> UnitBatch:
 	return m.ub
 
 
-func push_monster_gpu(m: CWMonsterUnit) -> void:
+func push_monster_gpu(m: CWMonsterUnit, cy: float = 2.0, sy: float = 0.0) -> void:
 	var ub: UnitBatch = m.ub
 	if ub == null:
 		ub = bind_monster_batch(m)
-	var tint := Color.WHITE
+	var cr := 1.0
+	var cg := 1.0
+	var cb := 1.0
 	if m.faded:
-		tint = Color(0.45, 1.0, 1.18, 1.0)
+		cr = 0.45; cg = 1.0; cb = 1.18
 	elif m.slow_t > 0.0:
-		tint = Color(0.62, 0.92, 1.15, 1.0)
+		cr = 0.62; cg = 0.92; cb = 1.15
 	var sc: float = m.unit_scale
 	var ph: float = m.phase * 2.0 if m.rig_is_fly else m.phase
 	var mv_enc: float = (2.0 + m.cast) if m.cast > 0.01 else m.mv
-	ub.push(m.x, m.y, m.z, m.yaw, sc, tint, ph, m.swing, m.flash, mv_enc)
+	if cy > 1.5:
+		cy = cos(m.yaw)
+		sy = sin(m.yaw)
+	ub.push_cs(m.x, m.y, m.z, cy, sy, sc, cr, cg, cb, ph, m.swing, m.flash, mv_enc)
 
-	if m.torch or m.has_eye:
-		var cy := cos(m.yaw)
-		var sy := sin(m.yaw)
-		if m.torch:
-			var lx := -0.22 * sc
-			var lz := 0.30 * sc
-			last_torch_pos = Vector3(m.x + cy * lx + sy * lz, m.y + 1.05 * sc, m.z - sy * lx + cy * lz)
-		if m.has_eye and glow_count < MAX_GLOW:
-			var ec := m.eye_col
-			push_glow_xyz(m.x + sy * m.eye_z, m.y + m.eye_y, m.z + cy * m.eye_z, ec.r, ec.g, ec.b, 0.34 * sc, 0.24)
+	if m.torch:
+		var lx := -0.22 * sc
+		var lz := 0.30 * sc
+		last_torch_pos = Vector3(m.x + cy * lx + sy * lz, m.y + 1.05 * sc, m.z - sy * lx + cy * lz)
+	if m.has_eye and glow_count < MAX_GLOW:
+		var ec := m.eye_col
+		push_glow_xyz(m.x + sy * m.eye_z, m.y + m.eye_y, m.z + cy * m.eye_z, ec.r, ec.g, ec.b, 0.34 * sc, 0.24)
 
 
 func push_footman_gpu(f: CWFootmanUnit) -> void:

@@ -310,6 +310,10 @@ func _update_waves(dt: float) -> void:
 
 
 func _start_wave() -> void:
+	var wn_now := wave_number()
+	if wn_now > best_wave:
+		best_wave = wn_now
+		_save_best_wave()
 	k = (k % 5) + 1
 	boss_wave = (k == 5)
 	queue = _build_wave(k, level)

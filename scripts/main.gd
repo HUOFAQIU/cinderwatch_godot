@@ -215,9 +215,15 @@ func _process(delta: float) -> void:
 
 	# D0: Split real dt (camera, UI, audio) vs simulation dt (slowmo x0.32 on Boss death)
 	var rdt := minf(delta, 0.05)
+	var _p_mon_ms := 0.0
+	var _p_rig_ms := 0.0
+	var _p_tow_ms := 0.0
 	_poll_pan_keys(rdt)
 	if not game.paused:
 		var steps := clampi(game.speed, 1, 3)
+		var t_tow_us := 0
+		var t_mon_us := 0
+		var t_rig_us := 0
 		for _sp in range(steps):
 			game.slowmo = maxf(0.0, game.slowmo - rdt)
 			var sdt := rdt * lerpf(1.0, 0.32, clampf(game.slowmo / 0.35, 0.0, 1.0))
@@ -226,9 +232,14 @@ func _process(delta: float) -> void:
 			fx.torch_positions.clear()
 			fx.dynamic_flames.clear()
 			game.update_game(sdt)
+			var t0_u := Time.get_ticks_usec()
 			towers_sys.update_towers(sdt, monsters_sys, game.dmg_mul)
+			var t1_u := Time.get_ticks_usec()
 			monsters_sys.update_monsters(sdt)
+			var t2_u := Time.get_ticks_usec()
 			rig.update_debris(sdt, terrain)
+			t_tow_us += t1_u - t0_u
+			t_mon_us += t2_u - t1_u
 			if game.phase == "play" and not terrain.layout.is_empty():
 				var k0 := (1.0 if game.gold >= 70 else 0.45) * (1.25 if not game.ai_commander else 1.0)
 				var pads_arr: Array = terrain.layout["pads"]
@@ -243,8 +254,13 @@ func _process(delta: float) -> void:
 					if not has_t:
 						var w_p := 0.5 + 0.5 * sin(sim_time * 2.1 + float(pi) * 1.7)
 						rig.push_glow(Vector3(float(pd["x"]), float(pd["y"]) + 0.36, float(pd["z"])), Color(2.6, 1.6, 0.55), 2.8 + 0.25 * w_p, (0.20 + 0.14 * w_p) * k0)
+			var t3_u := Time.get_ticks_usec()
 			rig.end_frame()
+			t_rig_us += Time.get_ticks_usec() - t3_u
 			fx.update_fx(sdt, sim_time, cam_pos)
+		_p_mon_ms = float(t_mon_us) * 0.001
+		_p_rig_ms = float(t_rig_us) * 0.001
+		_p_tow_ms = float(t_tow_us) * 0.001
 
 	_update_camera(rdt)
 	var mon_cnt := monsters_sys.mons.size()
@@ -262,8 +278,7 @@ func _process(delta: float) -> void:
 		monsters_sys.mons.size(),
 		towers_sys.footmen.size(),
 		rig.get_gpu_unit_count(),
-		rig.debris.size(),
-		rig.glow_count, rig.MAX_GLOW
+		_p_mon_ms, _p_rig_ms, _p_tow_ms
 	)
 
 	fx.update_biome_look(rdt)

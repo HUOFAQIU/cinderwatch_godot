@@ -167,11 +167,11 @@ func toggle_perf_overlay() -> void:
 	show_perf = not show_perf
 
 
-func update_perf_overlay(fps: int, mons_n: int, foot_n: int, gpu_units: int, debris_n: int, glow_n: int, glow_cap: int) -> void:
+func update_perf_overlay(fps: int, mons_n: int, foot_n: int, gpu_units: int, mon_ms: float, rig_ms: float, tow_ms: float) -> void:
 	if not show_perf:
 		return
-	perf_line1 = "FPS %d · Mons %d · Guards %d" % [fps, mons_n, foot_n]
-	perf_line2 = "GPU Units %d · Debris %d · Glow %d/%d" % [gpu_units, debris_n, glow_n, glow_cap]
+	perf_line1 = "FPS %d · Mons %d · Guards %d · Units %d" % [fps, mons_n, foot_n, gpu_units]
+	perf_line2 = "CPU Mon %.1fms · Rig %.1fms · Tow %.1fms" % [mon_ms, rig_ms, tow_ms]
 
 
 func _build_3d_rings(world_root: Node3D) -> void:

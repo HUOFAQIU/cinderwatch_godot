@@ -1,4 +1,10 @@
+# Godot 4+ specific ignores
 .godot/
 *.tmp
-export/
-build/
+*.translation
+export_presets.cfg.bak
+
+# OS & editor files
+.DS_Store
+Thumbs.db
+*.swp

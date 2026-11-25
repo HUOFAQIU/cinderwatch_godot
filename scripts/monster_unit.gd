@@ -39,7 +39,6 @@ var raged: bool = false
 var step: int = -1
 
 # Pre-cached hot-path properties (populated once in spawn())
-var road_idx: int = 0
 var base_spd: float = 1.2
 var unit_scale: float = 1.0
 var is_fly: bool = false

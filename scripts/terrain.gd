@@ -18,7 +18,7 @@ var has_bridge: bool = false
 var env_lights: Array[Dictionary] = []
 var keep_fires: Array[Vector3] = []
 var road_path: Path3D = null
-var stream_path: Path3D = null
+var road_lut: Dictionary = {}
 var pond_centers: Array[Vector3] = []
 var pad_meshes: Array[MeshInstance3D] = []
 var road_smooth: Array[Vector2] = []
@@ -152,6 +152,7 @@ func build_board(p_gfx: CWGfx, p_seed: int, biome_idx: int, biome_start: int = 0
 	if mirrored:
 		_apply_mirror_xz()
 	_rebuild_nav_paths()
+	_build_road_lut()
 	return {
 		"mirrored": mirrored,
 		"layout": layout,
@@ -1814,8 +1815,6 @@ func _apply_mirror_xz() -> void:
 func _rebuild_nav_paths() -> void:
 	if road_path != null and is_instance_valid(road_path):
 		road_path.queue_free()
-	if stream_path != null and is_instance_valid(stream_path):
-		stream_path.queue_free()
 	road_path = Path3D.new()
 	road_path.name = "RoadPath"
 	var r_curve := Curve3D.new()
@@ -1828,14 +1827,41 @@ func _rebuild_nav_paths() -> void:
 	road_path.curve = r_curve
 	add_child(road_path)
 
-	stream_path = Path3D.new()
-	stream_path.name = "StreamPath"
-	var s_curve := Curve3D.new()
-	var s_pts: Array = layout.get("stream", [])
-	for pt_v in s_pts:
-		var pt: Vector2 = pt_v
-		var sx: float = pt.y if mirrored else pt.x
-		var sz: float = pt.x if mirrored else pt.y
-		s_curve.add_point(Vector3(sx, height_at(sx, sz), sz))
-	stream_path.curve = s_curve
-	add_child(stream_path)
+
+func _build_road_lut() -> void:
+	var total_len: float = float(layout.get("total_len", 1.0))
+	var step := 0.2
+	var n := maxi(2, int(ceilf(total_len / step)) + 2)
+	var rx := PackedFloat32Array(); rx.resize(n)
+	var ry := PackedFloat32Array(); ry.resize(n)
+	var rz := PackedFloat32Array(); rz.resize(n)
+	var px := PackedFloat32Array(); px.resize(n)
+	var pz := PackedFloat32Array(); pz.resize(n)
+	var ryaw := PackedFloat32Array(); ryaw.resize(n)
+	var rcy := PackedFloat32Array(); rcy.resize(n)
+	var rsy := PackedFloat32Array(); rsy.resize(n)
+	for k in range(n):
+		var s_val := minf(float(k) * step, total_len)
+		var smp := CWLayout.sample_path(layout, s_val)
+		var p: Vector2 = smp["pos"]
+		var d: Vector2 = smp["dir"]
+		var wx: float = p.y if _mirror_active else p.x
+		var wz: float = p.x if _mirror_active else p.y
+		var dx: float = d.y if _mirror_active else d.x
+		var dz: float = d.x if _mirror_active else d.y
+		var yw := atan2(dx, dz)
+		rx[k] = wx
+		ry[k] = height_at(wx, wz)
+		rz[k] = wz
+		px[k] = -dz
+		pz[k] = dx
+		ryaw[k] = yw
+		rcy[k] = cos(yw)
+		rsy[k] = sin(yw)
+	road_lut = {
+		"step_inv": 1.0 / step,
+		"last": n - 1,
+		"rx": rx, "ry": ry, "rz": rz,
+		"px": px, "pz": pz,
+		"yaw": ryaw, "cy": rcy, "sy": rsy,
+	}

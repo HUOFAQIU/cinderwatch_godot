@@ -52,24 +52,11 @@ const GRID_HALF := 24.0
 var _grid_buckets: Array = []
 var _grid_dirty: PackedInt32Array = PackedInt32Array()
 var _grid_tick: int = 0
-var _def_cache: Dictionary = {}
-
-
 func _ensure_grid_init() -> void:
 	if _grid_buckets.is_empty():
 		_grid_buckets.resize(GRID_DIM * GRID_DIM)
 		for gi in range(GRID_DIM * GRID_DIM):
 			_grid_buckets[gi] = []
-
-
-func get_def_res(mob_type: String) -> CWMonsterDef:
-	if _def_cache.has(mob_type):
-		return _def_cache[mob_type] as CWMonsterDef
-	if not DEFS.has(mob_type):
-		return null
-	var res := CWMonsterDef.from_dict(mob_type, DEFS[mob_type])
-	_def_cache[mob_type] = res
-	return res
 
 
 func _insert_grid(m: CWMonsterUnit) -> void:
@@ -192,7 +179,7 @@ func spawn(type: String, hp_mul: float = 1.0, s_pos: float = -1.0, lat_ofs: floa
 
 func slow_monster(m: CWMonsterUnit, f: float, dur: float) -> void:
 	var def: Dictionary = m.def
-	if bool(def.get("boss", false)):
+	if m.is_boss:
 		f *= 0.4
 		dur *= 0.6
 	var res := float(def.get("slow_res", 0.0))
@@ -226,7 +213,7 @@ func hit_monster(m: CWMonsterUnit, dmg: float, kind: String, dir: Vector3, tower
 func explode_at(cx: float, cz: float, dmg: float, splash: float, tower = null) -> void:
 	var r2 := splash * splash
 	for m in _query_grid(cx, cz, splash):
-		if bool(m.dead) or float(m.hp) <= 0.0 or bool(m.def.get("fly", false)):
+		if m.dead or m.hp <= 0.0 or m.is_fly:
 			continue
 		var d2 := CWUtil.dist2(m.x, m.z, cx, cz)
 		if d2 <= r2:
@@ -320,7 +307,7 @@ func find_targets(cx: float, cz: float, rng: float, can_air: bool, can_ground: b
 	for m in _query_grid(cx, cz, rng):
 		if bool(m.dead) or float(m.hp) <= 0.0:
 			continue
-		var is_fly := bool(m.def.get("fly", false))
+		var is_fly := m.is_fly
 		if is_fly and not can_air:
 			continue
 		if not is_fly and not can_ground:
@@ -351,7 +338,7 @@ func find_duel_target(cx: float, cz: float, rng: float) -> CWMonsterUnit:
 	var best_d := rng * rng
 	var best: CWMonsterUnit = null
 	for m in _query_grid(cx, cz, rng):
-		if bool(m.dead) or float(m.hp) <= 0.0 or bool(m.def.get("fly", false)) or bool(m.def.get("slip", false)) or bool(m.def.get("ghost", false)):
+		if m.dead or m.hp <= 0.0 or m.is_fly or m.is_slip or m.is_ghost:
 			continue
 		if m.blocker != null:
 			continue
@@ -376,9 +363,19 @@ func update_monsters(dt: float) -> void:
 
 	var total_len: float = terrain.layout["total_len"]
 	var inv_total_len: float = 1.0 / maxf(total_len, 1.0)
-	var road_a: Array[Vector2] = terrain.layout["road"]
-	var s_a: Array[float] = terrain.layout["path_s"]
-	var road_last: int = s_a.size() - 1
+	var lut: Dictionary = terrain.road_lut
+	var lut_inv: float = float(lut.get("step_inv", 5.0))
+	var lut_last: int = int(lut.get("last", 0))
+	var lut_rx: PackedFloat32Array = lut.get("rx", PackedFloat32Array())
+	var lut_ry: PackedFloat32Array = lut.get("ry", PackedFloat32Array())
+	var lut_rz: PackedFloat32Array = lut.get("rz", PackedFloat32Array())
+	var lut_px: PackedFloat32Array = lut.get("px", PackedFloat32Array())
+	var lut_pz: PackedFloat32Array = lut.get("pz", PackedFloat32Array())
+	var lut_yaw: PackedFloat32Array = lut.get("yaw", PackedFloat32Array())
+	var lut_cy: PackedFloat32Array = lut.get("cy", PackedFloat32Array())
+	var lut_sy: PackedFloat32Array = lut.get("sy", PackedFloat32Array())
+	var has_lut := lut_last > 0
+	var damp10 := 1.0 - exp(-10.0 * dt)
 	var i := mons.size() - 1
 	while i >= 0:
 		var m := mons[i]
@@ -440,6 +437,8 @@ func update_monsters(dt: float) -> void:
 				audio.play_sfx("crumble", 0.7)
 
 		# Movement or Melee Duel
+		var cy_v := 2.0
+		var sy_v := 0.0
 		var blocker: CWFootmanUnit = m.blocker
 		if blocker != null and blocker.hp > 0.0:
 			var bdx := blocker.x - m.x
@@ -477,61 +476,59 @@ func update_monsters(dt: float) -> void:
 
 			m.s += spd * dt
 			var is_fly := m.is_fly
-			var p: Vector2
-			var d: Vector2
-			var prog_v: float
-			if is_fly:
-				var sample := terrain.sample_smooth_road(m.s)
-				p = sample["pos"]
-				d = sample["dir"]
-				prog_v = float(sample["prog"])
+			var px_v := 0.0
+			var pz_v := 0.0
+			if not is_fly and has_lut:
+				var lf := m.s * lut_inv
+				var li := clampi(int(lf), 0, maxi(0, lut_last - 1))
+				var li1 := mini(li + 1, lut_last)
+				var frac := clampf(lf - float(li), 0.0, 1.0)
+				px_v = lut_px[li] + (lut_px[li1] - lut_px[li]) * frac
+				pz_v = lut_pz[li] + (lut_pz[li1] - lut_pz[li]) * frac
+				m.x = lut_rx[li] + (lut_rx[li1] - lut_rx[li]) * frac + px_v * m.lat
+				m.y = lut_ry[li] + (lut_ry[li1] - lut_ry[li]) * frac
+				m.z = lut_rz[li] + (lut_rz[li1] - lut_rz[li]) * frac + pz_v * m.lat
+				m.yaw = lut_yaw[li]
+				cy_v = lut_cy[li] + (lut_cy[li1] - lut_cy[li]) * frac
+				sy_v = lut_sy[li] + (lut_sy[li1] - lut_sy[li]) * frac
+				m.prog = m.s * inv_total_len
 			else:
-				var cs := clampf(m.s, 0.0, total_len)
-				var lo := m.road_idx
-				if lo >= road_last:
-					lo = maxi(0, road_last - 1)
-				while lo + 1 < road_last and s_a[lo + 1] <= cs:
-					lo += 1
-				m.road_idx = lo
-				var hi := mini(lo + 1, road_last)
-				var seg := maxf(s_a[hi] - s_a[lo], 1e-5)
-				var rt := clampf((cs - s_a[lo]) / seg, 0.0, 1.0)
-				p = road_a[lo].lerp(road_a[hi], rt)
-				d = (road_a[hi] - road_a[lo]).normalized()
-				prog_v = cs * inv_total_len
-			var perp := Vector2(-d.y, d.x)
-			if is_fly:
-				var weave := sin(float(m.phase) * 0.22) * (0.70 if String(m.type) == "wisp" else 0.45)
-				var lat_f := float(m.lat) * 1.25 + weave
-				var e_end := clampf((float(m.s) - (total_len - 6.0)) / 6.0, 0.0, 1.0)
-				var e2 := e_end * e_end * (3.0 - 2.0 * e_end)
-				var tx := lerpf(p.x + perp.x * lat_f, terrain.beacon_pos.x, e2)
-				var tz := lerpf(p.y + perp.y * lat_f, terrain.beacon_pos.z, e2)
-				m.x = CWUtil.damp(float(m.x), tx, 4.0, dt)
-				m.z = CWUtil.damp(float(m.z), tz, 4.0, dt)
-				var base_y := terrain.height_at(m.x, m.z)
-				var want_y := lerpf(base_y + float(def.get("alt", 2.8)), terrain.beacon_pos.y - 0.2, e2)
-				m.y = CWUtil.damp(float(m.y), want_y + sin(float(m.phase) * 0.4) * 0.25, 3.0, dt)
-			else:
-				m.x = p.x + perp.x * float(m.lat)
-				m.z = p.y + perp.y * float(m.lat)
-				m.y = terrain.height_at(m.x, m.z)
-			m.yaw = atan2(d.x, d.y)
-			m.prog = prog_v
-			m.phase = float(m.phase) + dt * spd * 6.2
-			m.mv = CWUtil.damp(float(m.mv), 1.0, 10.0, dt)
-			# Boss heavy footstep dust, footprint decal & subtle camera shake (61-monsters.js:322)
+				var sample := terrain.sample_smooth_road(m.s) if is_fly else CWLayout.sample_path(terrain.layout, m.s)
+				var p: Vector2 = sample["pos"]
+				var d: Vector2 = sample["dir"]
+				px_v = -d.y
+				pz_v = d.x
+				if is_fly:
+					var weave := sin(m.phase * 0.22) * (0.70 if m.type == "wisp" else 0.45)
+					var lat_f := m.lat * 1.25 + weave
+					var e_end := clampf((m.s - (total_len - 6.0)) / 6.0, 0.0, 1.0)
+					var e2 := e_end * e_end * (3.0 - 2.0 * e_end)
+					var tx := lerpf(p.x + px_v * lat_f, terrain.beacon_pos.x, e2)
+					var tz := lerpf(p.y + pz_v * lat_f, terrain.beacon_pos.z, e2)
+					m.x = CWUtil.damp(m.x, tx, 4.0, dt)
+					m.z = CWUtil.damp(m.z, tz, 4.0, dt)
+					var base_y := terrain.height_at(m.x, m.z)
+					var want_y := lerpf(base_y + float(def.get("alt", 2.8)), terrain.beacon_pos.y - 0.2, e2)
+					m.y = CWUtil.damp(m.y, want_y + sin(m.phase * 0.4) * 0.25, 3.0, dt)
+				else:
+					m.x = p.x + px_v * m.lat
+					m.z = p.y + pz_v * m.lat
+					m.y = terrain.height_at(m.x, m.z)
+				m.yaw = atan2(d.x, d.y)
+				m.prog = float(sample["prog"])
+			m.phase += dt * spd * 6.2
+			m.mv += (1.0 - m.mv) * damp10
 			if m.is_boss and not is_fly:
-				var st_idx := int(floorf(float(m.phase) / PI))
-				if st_idx != int(m.step):
+				var st_idx := int(floorf(m.phase / PI))
+				if st_idx != m.step:
 					m.step = st_idx
 					var fsd := 1.0 if (st_idx & 1) == 1 else -1.0
-					var fp := Vector3(float(m.x) + perp.x * fsd * 0.5, float(m.y) + 0.06, float(m.z) + perp.y * fsd * 0.5)
+					var fp := Vector3(m.x + px_v * fsd * 0.5, m.y + 0.06, m.z + pz_v * fsd * 0.5)
 					fx.spawn_dust(fp, 6, 2.2, 0.9, 0.55)
 					fx.spawn_decal(fp, 0.65, Color(0.03, 0.025, 0.022, 0.48), 8.5)
 					fx.add_shake(0.28)
 
-			if float(m.s) >= total_len - 0.4:
+			if m.s >= total_len - 0.4:
 				m.dead = true
 				fx.beacon_gutter = 1.0
 				audio.play_sfx("leak", 0.9)
@@ -540,7 +537,7 @@ func update_monsters(dt: float) -> void:
 				i -= 1
 				continue
 
-		rig.push_monster_gpu(m)
+		rig.push_monster_gpu(m, cy_v, sy_v)
 		if m.slow_t > 0.0 or m.cast > 0.01 or m.has_special_fx:
 			var m_ty: String = m.type
 			var m_sc: float = m.unit_scale
