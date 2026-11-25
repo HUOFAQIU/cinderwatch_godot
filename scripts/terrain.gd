@@ -28,7 +28,6 @@ var seed_val: int = 1
 var mirrored: bool = false
 var _mirror_active: bool = false
 
-const Props := preload("res://scripts/props.gd")
 const GRID_N := 49
 var _grid_h: PackedFloat32Array = PackedFloat32Array()
 var _grid_dr: PackedFloat32Array = PackedFloat32Array()
@@ -479,17 +478,17 @@ func _build_tree(soup: CWGfx.Soup, lp: Vector3, style: String, rng: CWUtil.Rng) 
 				var trot := Vector3(rng.rr(-0.08, 0.08), rng.rr(0.0, TAU), rng.rr(-0.08, 0.08))
 				soup.add_cone(tier_r, thh, lp + Vector3(lx * ty + rng.rr(-0.03, 0.03), ty + thh * 0.38, lz * ty + rng.rr(-0.03, 0.03)), tcol, 9, CWGfx.L_LEAF, 0.88, trot, 0.22 + u * 0.25)
 		"palm":
-			Props.add_palm(soup, lp, h * 1.15, pal, rng)
+			CWPropLib.stamp(soup, "palm", lp, rng.rr(0.0, TAU), (h * 1.15) / 3.6)
 		"willow":
-			Props.add_willow(soup, lp, h * 1.05, pal, rng)
+			CWPropLib.stamp(soup, "willow", lp, rng.rr(0.0, TAU), (h * 1.05) / 3.4)
 			if rng.next_f() < 0.28:
-				Props.add_web(soup, lp + Vector3(0.0, h * 0.42, 0.0), rng.rr(0.0, TAU), 0.52)
+				CWPropLib.stamp(soup, "web", lp + Vector3(0.0, h * 0.42, 0.0), rng.rr(0.0, TAU), 1.0)
 		"charred":
-			Props.add_gnarled_tree(soup, lp, h, pal, rng, true)
+			CWPropLib.stamp(soup, "gnarled_ember", lp, rng.rr(0.0, TAU), h / 3.4)
 		_:
-			Props.add_gnarled_tree(soup, lp, h, pal, rng, false)
+			CWPropLib.stamp(soup, "gnarled_tree", lp, rng.rr(0.0, TAU), h / 3.4)
 			if String(bio.get("key", "")) in ["ashen", "fen"] and rng.next_f() < 0.25:
-				Props.add_web(soup, lp + Vector3(0.0, h * 0.42, 0.0), rng.rr(0.0, TAU), 0.50)
+				CWPropLib.stamp(soup, "web", lp + Vector3(0.0, h * 0.42, 0.0), rng.rr(0.0, TAU), 0.96)
 
 
 func get_chunk_node(wx: float, wz: float) -> Node3D:

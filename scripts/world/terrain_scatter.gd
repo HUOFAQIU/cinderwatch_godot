@@ -1,7 +1,6 @@
 class_name CWTerrainScatter
 extends RefCounted
 
-const Props := preload("res://scripts/props.gd")
 
 # Biome landmarks, flora, boulders, ponds, and ruins placement (extracted from terrain.gd)
 
@@ -86,62 +85,62 @@ static func _scatter_landmarks_and_biome_props(t: CWTerrain, rng: CWUtil.Rng) ->
 		return {}
 
 	# 1. Iconic Landmarks (32-props.js:354-365)
-	drop.call(func(s, p, y): Props.add_tower_ruin(s, p, y, t.pal, rng), 2.7, 2.8, 1.8)
-	drop.call(func(s, p, y): Props.add_ribcage(s, p, y, t.pal, rng), 2.3, 2.4, 1.6)
-	drop.call(func(s, p, y): Props.add_graveyard(s, p, y, t.pal, rng), 3.0, 2.6, 1.8)
-	drop.call(func(s, p, y): Props.add_well(s, p, y, t.pal, rng), 1.3, 1.9, 1.5)
-	drop.call(func(s, p, y): Props.add_statue(s, p, y, t.pal, rng), 1.2, 2.0, 1.5)
+	drop.call(func(s, p, y): CWPropLib.stamp(s, "tower_ruin", p, y), 2.7, 2.8, 1.8)
+	drop.call(func(s, p, y): CWPropLib.stamp(s, "ribcage", p, y), 2.3, 2.4, 1.6)
+	drop.call(func(s, p, y): CWPropLib.stamp(s, "graveyard", p, y), 3.0, 2.6, 1.8)
+	drop.call(func(s, p, y): CWPropLib.stamp(s, "well", p, y), 1.3, 1.9, 1.5)
+	drop.call(func(s, p, y): CWPropLib.stamp(s, "statue", p, y), 1.2, 2.0, 1.5)
 	for _w in range(3):
 		var wlen := rng.rr(3.8, 6.4)
 		var wh := rng.rr(1.8, 3.0)
-		drop.call(func(s, p, y): Props.add_wall_run(s, p, y, wlen, wh, t.pal, rng), wlen * 0.48, 2.0, 1.5)
+		drop.call(func(s, p, y): CWPropLib.stamp(s, "wall_run", p, y, wlen / 4.0), wlen * 0.48, 2.0, 1.5)
 	for _c in range(3):
-		drop.call(func(s, p, _y): Props.add_cairn(s, p, t.pal, rng), 0.55, 1.8, 1.3)
+		drop.call(func(s, p, _y): CWPropLib.stamp(s, "cairn", p, rng.rr(0.0, TAU)), 0.55, 1.8, 1.3)
 
 	# 2. Road-Aligned Narrative Dressing (32-props.js:366-378)
 	for k in range(2):
 		var br: Dictionary = beside_road.call(8.0, total_len - 7.0, 0.9, 1.05)
 		if not br.is_empty():
 			var is_brk := (k == 1)
-			place_at.call(float(br["x"]), float(br["z"]), float(br["yaw"]) + rng.rr(-0.25, 0.25), func(s, p, y): Props.add_cart(s, p, y, is_brk, t.pal, rng))
+			place_at.call(float(br["x"]), float(br["z"]), float(br["yaw"]) + rng.rr(-0.25, 0.25), func(s, p, y): CWPropLib.stamp(s, "cart_broken" if is_brk else "cart", p, y))
 	for _k in range(4):
 		var br: Dictionary = beside_road.call(6.0, total_len - 6.0, 0.45, 0.95)
 		if not br.is_empty():
 			var plen := rng.rr(2.6, 4.1)
-			place_at.call(float(br["x"]), float(br["z"]), float(br["yaw"]) + PI * 0.5, func(s, p, y): Props.add_palisade(s, p, y, plen, t.pal, rng))
+			place_at.call(float(br["x"]), float(br["z"]), float(br["yaw"]) + PI * 0.5, func(s, p, y): CWPropLib.stamp(s, "palisade", p, y, plen / 3.0))
 	for _k in range(4):
 		var br: Dictionary = beside_road.call(6.0, total_len - 6.0, 0.65, 1.05)
 		if not br.is_empty():
 			var flen := rng.rr(2.5, 4.3)
-			place_at.call(float(br["x"]), float(br["z"]), float(br["yaw"]) + PI * 0.5 + rng.rr(-0.12, 0.12), func(s, p, y): Props.add_fence(s, p, y, flen, t.pal, rng))
+			place_at.call(float(br["x"]), float(br["z"]), float(br["yaw"]) + PI * 0.5 + rng.rr(-0.12, 0.12), func(s, p, y): CWPropLib.stamp(s, "fence", p, y, flen / 3.2))
 	for k in range(4):
 		var br: Dictionary = beside_road.call(7.0, total_len - 5.0, 0.55, 0.35)
 		if not br.is_empty():
 			var bcol: Color = t.pal["clothR"] if (k & 1) == 0 else t.pal["clothB"]
-			place_at.call(float(br["x"]), float(br["z"]), float(br["yaw"]) + PI * 0.5 * float(br["side"]), func(s, p, y): Props.add_banner(s, p, y, bcol, t.pal))
+			place_at.call(float(br["x"]), float(br["z"]), float(br["yaw"]) + PI * 0.5 * float(br["side"]), func(s, p, y): CWPropLib.stamp(s, "banner_r" if bcol == t.pal["clothR"] else "banner_b", p, y))
 	var br_sign: Dictionary = beside_road.call(total_len * 0.28, total_len * 0.72, 0.55, 0.4)
 	if not br_sign.is_empty():
-		place_at.call(float(br_sign["x"]), float(br_sign["z"]), float(br_sign["yaw"]), func(s, p, y): Props.add_signpost(s, p, y, t.pal, rng))
+		place_at.call(float(br_sign["x"]), float(br_sign["z"]), float(br_sign["yaw"]), func(s, p, y): CWPropLib.stamp(s, "signpost", p, y))
 	var br_gib: Dictionary = beside_road.call(10.0, total_len * 0.62, 1.0, 0.65)
 	if not br_gib.is_empty():
-		place_at.call(float(br_gib["x"]), float(br_gib["z"]), float(br_gib["yaw"]) + PI * 0.5, func(s, p, y): Props.add_gibbet(s, p, y, t.pal, rng))
+		place_at.call(float(br_gib["x"]), float(br_gib["z"]), float(br_gib["yaw"]) + PI * 0.5, func(s, p, y): CWPropLib.stamp(s, "gibbet", p, y))
 	for _k in range(5):
 		var br: Dictionary = beside_road.call(6.0, total_len - 5.0, 0.75, 0.7)
 		if not br.is_empty():
-			place_at.call(float(br["x"]), float(br["z"]), rng.rr(0.0, TAU), func(s, p, y): Props.add_supply_cluster(s, p, y, t.pal, rng))
+			place_at.call(float(br["x"]), float(br["z"]), rng.rr(0.0, TAU), func(s, p, y): CWPropLib.stamp(s, "supply_cluster", p, y))
 
 	# 3. Cave Skull Stakes & Bone Piles (32-props.js:310-311, 379-380)
 	for sg: float in [-1.0, 1.0]:
 		var sx := cave.x + 1.85
 		var sz := cave.y + sg * 2.35
-		place_at.call(sx, sz, 0.0, func(s, p, _y): Props.add_skull_stake(s, p, t.pal, rng))
+		place_at.call(sx, sz, 0.0, func(s, p, _y): CWPropLib.stamp(s, "skull_stake", p, rng.rr(0.0, TAU)))
 	for _k in range(6):
 		var bx := cave.x + rng.rr(1.8, 6.8)
 		var bz := cave.y + (-1.0 if rng.next_f() < 0.5 else 1.0) * rng.rr(1.8, 4.8)
 		if absf(bx) < bh and absf(bz) < bh and t.height_at(bx, bz) < 1.35:
-			place_at.call(bx, bz, 0.0, func(s, p, _y): Props.add_bone_pile(s, p, t.pal, rng, rng.ri(4, 7)))
+			place_at.call(bx, bz, 0.0, func(s, p, _y): CWPropLib.stamp(s, "bone_pile", p, rng.rr(0.0, TAU), rng.rr(0.85, 1.2)))
 	for _k in range(5):
-		drop.call(func(s, p, _y): Props.add_bone_pile(s, p, t.pal, rng, rng.ri(3, 5)), 0.45, 1.6, 1.3)
+		drop.call(func(s, p, _y): CWPropLib.stamp(s, "bone_pile", p, rng.rr(0.0, TAU), rng.rr(0.75, 1.05)), 0.45, 1.6, 1.3)
 
 	# 4. Road Puddles & Biome Ponds (exact counts & wet mud halos from 29-biome.js & 31-terrain.js:244-270)
 	var puddle_soup := CWGfx.Soup.new()
@@ -215,14 +214,14 @@ static func _scatter_landmarks_and_biome_props(t: CWTerrain, rng: CWUtil.Rng) ->
 					var rr_p := pr * rng.rr(0.92, 1.12)
 					rim_sp.add_rock(rng.rr(0.22, 0.42), Vector3(cos(ra) * rr_p, 0.08, sin(ra) * rr_p), t.pal["stoneD"], rng.ri(1, 9999), CWGfx.L_ROCK, 0.92, Vector3(1.1, 0.65, 1.0))
 					if bkey == "fen" or bkey == "dunes":
-						Props.add_reeds(rim_sp, Vector3(cos(ra + 0.2) * (pr * 0.98), 0.0, sin(ra + 0.2) * (pr * 0.98)), t.pal, rng)
+						CWPropLib.stamp(rim_sp, "reeds", Vector3(cos(ra + 0.2) * (pr * 0.98), 0.0, sin(ra + 0.2) * (pr * 0.98)), rng.rr(0.0, TAU))
 					elif bkey == "frost" and rk < 3:
-						Props.add_crystal(rim_sp, Vector3(cos(ra) * (pr + 0.35), 0.0, sin(ra) * (pr + 0.35)), Color(0.52, 0.84, 1.0), rng)
+						CWPropLib.stamp(rim_sp, "crystal", Vector3(cos(ra) * (pr + 0.35), 0.0, sin(ra) * (pr + 0.35)), rng.rr(0.0, TAU))
 				if bkey == "fen":
 					for _lk in range(4):
 						var la := rng.rr(0.0, TAU)
 						var ld := pr * rng.rr(0.08, 0.55)
-						Props.add_lily(rim_sp, Vector3(cos(la) * ld, 0.05, sin(la) * ld), t.pal, rng)
+						CWPropLib.stamp(rim_sp, "lily", Vector3(cos(la) * ld, 0.05, sin(la) * ld), rng.rr(0.0, TAU))
 				var rim_mi := MeshInstance3D.new()
 				rim_mi.mesh = rim_sp.build()
 				rim_mi.material_override = t.gfx.mat_world
@@ -249,7 +248,7 @@ static func _scatter_landmarks_and_biome_props(t: CWTerrain, rng: CWUtil.Rng) ->
 
 	# 5. Biome-Specific Flora & Landforms (33-flora.js:129-170)
 	for _s in range(7):
-		drop.call(func(s, p, _y): Props.add_stump(s, p, t.pal, rng), 0.45, 1.8, 1.3)
+		drop.call(func(s, p, _y): CWPropLib.stamp(s, "stump", p, rng.rr(0.0, TAU)), 0.45, 1.8, 1.3)
 
 	# Subtle cobblestone road cracks (31-terrain.js:238-248)
 	var cr_soup := CWGfx.Soup.new()
@@ -284,20 +283,20 @@ static func _scatter_landmarks_and_biome_props(t: CWTerrain, rng: CWUtil.Rng) ->
 	match bkey:
 		"ashen":
 			for _k in range(4):
-				drop.call(func(s, p, y): Props.add_log(s, p, y, t.pal, rng), 1.0, 1.9, 1.4)
+				drop.call(func(s, p, y): CWPropLib.stamp(s, "log", p, y), 1.0, 1.9, 1.4)
 		"frost":
 			for _k in range(6):
-				drop.call(func(s, p, _y): Props.add_crystal(s, p, Color(0.54, 0.86, 1.0), rng), 0.55, 1.8, 1.2)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "crystal", p, rng.rr(0.0, TAU)), 0.55, 1.8, 1.2)
 			for _k in range(32):
 				var dr_r := rng.rr(0.50, 1.25)
-				drop.call(func(s, p, _y): Props.add_drift(s, p, dr_r, Color(0.76, 0.83, 0.92), rng), dr_r * 0.38, 1.2, 1.0, 55, true)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "drift", p, rng.rr(0.0, TAU), dr_r / 1.6), dr_r * 0.38, 1.2, 1.0, 55, true)
 			for _k in range(2):
-				drop.call(func(s, p, y): Props.add_log(s, p, y, t.pal, rng), 1.0, 1.9, 1.4)
+				drop.call(func(s, p, y): CWPropLib.stamp(s, "log", p, y), 1.0, 1.9, 1.4)
 		"fen":
 			for _k in range(16):
-				drop.call(func(s, p, _y): Props.add_shroom_cluster(s, p, rng), 0.40, 1.6, 1.1)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "shroom_cluster", p, rng.rr(0.0, TAU)), 0.40, 1.6, 1.1)
 			for _k in range(5):
-				drop.call(func(s, p, y): Props.add_log(s, p, y, t.pal, rng), 1.0, 1.9, 1.4)
+				drop.call(func(s, p, y): CWPropLib.stamp(s, "log", p, y), 1.0, 1.9, 1.4)
 			if t.env_lights.size() < 3 and not t.pond_centers.is_empty():
 				var pc0 := t.pond_centers[0]
 				t.env_lights.append({"pos": pc0 + Vector3(0, 0.8, 0), "col": Color(0.27, 0.88, 0.72), "energy": 1.1, "range": 7.5, "flick": false})
@@ -312,15 +311,15 @@ static func _scatter_landmarks_and_biome_props(t: CWTerrain, rng: CWUtil.Rng) ->
 					var rx := st_pts[su].x - sdir.y * sside * soff
 					var rz := st_pts[su].y + sdir.x * sside * soff
 					if absf(rx) < bh - 0.8 and absf(rz) < bh - 0.8 and t._sample_grid(t._grid_dr, rx, rz) > CWLayout.ROAD_HALF + 0.9:
-						place_at.call(rx, rz, rng.rr(0.0, TAU), func(s, p, _y): Props.add_reeds(s, p, t.pal, rng))
+						place_at.call(rx, rz, rng.rr(0.0, TAU), func(s, p, _y): CWPropLib.stamp(s, "reeds", p, rng.rr(0.0, TAU)))
 		"ember":
 			for _k in range(9):
-				drop.call(func(s, p, _y): Props.add_basalt(s, p, t.pal, rng), 1.0, 1.9, 1.4)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "basalt", p, rng.rr(0.0, TAU)), 1.0, 1.9, 1.4)
 			for _k in range(6):
 				var sh := rng.rr(2.0, 4.0)
-				drop.call(func(s, p, _y): Props.add_spire(s, p, sh, t.pal, rng), sh * 0.28, 2.0, 1.4, 50, true)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "spire_dunes" if bkey == "dunes" else "spire", p, rng.rr(0.0, TAU), sh / 3.2), sh * 0.28, 2.0, 1.4, 50, true)
 			for _k in range(4):
-				var vp: Vector2 = drop.call(func(s, p, _y): Props.add_vent(s, p, t.pal, rng), 0.85, 2.1, 1.5)
+				var vp: Vector2 = drop.call(func(s, p, _y): CWPropLib.stamp(s, "vent", p, rng.rr(0.0, TAU)), 0.85, 2.1, 1.5)
 				if vp.x < 500.0:
 					t.keep_fires.append(Vector3(vp.x, t.height_at(vp.x, vp.y) + 0.18, vp.y))
 			# Glowing volcanic ground lava cracks (31-terrain.js:271-284)
@@ -357,10 +356,10 @@ static func _scatter_landmarks_and_biome_props(t: CWTerrain, rng: CWUtil.Rng) ->
 				t.env_lights.append({"pos": Vector3(t.bridge_pos.x, t.height_at(t.bridge_pos.x, t.bridge_pos.y) + 0.5, t.bridge_pos.y), "col": Color(1.0, 0.35, 0.12), "energy": 2.2, "range": 9.5, "flick": true})
 		"dunes":
 			for _k in range(11):
-				drop.call(func(s, p, _y): Props.add_cactus(s, p, rng), 0.45, 1.7, 1.3)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "cactus", p, rng.rr(0.0, TAU)), 0.45, 1.7, 1.3)
 			for _k in range(6):
 				var sh := rng.rr(2.2, 4.4)
-				drop.call(func(s, p, _y): Props.add_spire(s, p, sh, t.pal, rng), sh * 0.28, 2.0, 1.4, 50, true)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "spire_dunes" if bkey == "dunes" else "spire", p, rng.rr(0.0, TAU), sh / 3.2), sh * 0.28, 2.0, 1.4, 50, true)
 			# Terracotta amphora jar clusters beside Duskmesa pads (33-flora.js:171-176)
 			var d_pads: Array = t.layout["pads"]
 			for pd in d_pads:
@@ -370,7 +369,7 @@ static func _scatter_landmarks_and_biome_props(t: CWTerrain, rng: CWUtil.Rng) ->
 				var jx := float(pd["x"]) + cos(ja) * 2.25
 				var jz := float(pd["z"]) + sin(ja) * 2.25
 				if absf(jx) < bh - 1.0 and absf(jz) < bh - 1.0 and t._sample_grid(t._grid_dr, jx, jz) > CWLayout.ROAD_HALF + 0.5:
-					place_at.call(jx, jz, 0.0, func(s, p, _y): Props.add_jar_cluster(s, p, rng))
+					place_at.call(jx, jz, 0.0, func(s, p, _y): CWPropLib.stamp(s, "jar_cluster", p, rng.rr(0.0, TAU)))
 
 	# Duskmesa oasis palms ringing each desert pond (33-flora.js:146-149)
 	if bkey == "dunes":
@@ -381,7 +380,7 @@ static func _scatter_landmarks_and_biome_props(t: CWTerrain, rng: CWUtil.Rng) ->
 				var px_p := pc.x + cos(pa) * pd
 				var pz_p := pc.z + sin(pa) * pd
 				if absf(px_p) < bh - 1.2 and absf(pz_p) < bh - 1.2 and t._sample_grid(t._grid_dr, px_p, pz_p) > CWLayout.ROAD_HALF + 1.0:
-					place_at.call(px_p, pz_p, rng.rr(0.0, TAU), func(s, p, _y): Props.add_palm(s, p, rng.rr(3.0, 4.4), t.pal, rng))
+					place_at.call(px_p, pz_p, rng.rr(0.0, TAU), func(s, p, _y): CWPropLib.stamp(s, "palm", p, rng.rr(0.0, TAU), rng.rr(0.84, 1.22)))
 
 	# Full biome forest density & secondary bare gnarled trees (exact 29-biome.js bio.trees)
 	match bkey:
@@ -389,23 +388,23 @@ static func _scatter_landmarks_and_biome_props(t: CWTerrain, rng: CWUtil.Rng) ->
 			for _tk in range(11):
 				drop.call(func(s, p, _y): t._build_tree(s, p, "pine", rng), 0.78, 1.4, 1.5, 45, false)
 			for _tk in range(4):
-				drop.call(func(s, p, _y): Props.add_gnarled_tree(s, p, rng.rr(2.6, 4.2), t.pal, rng, false), 0.58, 1.4, 1.5, 45, false)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "gnarled_tree", p, rng.rr(0.0, TAU), rng.rr(0.76, 1.24)), 0.58, 1.4, 1.5, 45, false)
 		"fen":
 			for _tk in range(5):
 				drop.call(func(s, p, _y): t._build_tree(s, p, "willow", rng), 0.80, 1.4, 1.5, 45, false)
 			for _tk in range(5):
-				drop.call(func(s, p, _y): Props.add_gnarled_tree(s, p, rng.rr(2.6, 4.4), t.pal, rng, false), 0.58, 1.4, 1.5, 45, false)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "gnarled_tree", p, rng.rr(0.0, TAU), rng.rr(0.76, 1.28)), 0.58, 1.4, 1.5, 45, false)
 		"dunes":
 			for _tk in range(4):
 				drop.call(func(s, p, _y): t._build_tree(s, p, "palm", rng), 0.72, 1.4, 1.5, 45, false)
 			for _tk in range(2):
-				drop.call(func(s, p, _y): Props.add_gnarled_tree(s, p, rng.rr(2.4, 3.4), t.pal, rng, false), 0.55, 1.4, 1.5, 45, false)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "gnarled_tree", p, rng.rr(0.0, TAU), rng.rr(0.70, 1.00)), 0.55, 1.4, 1.5, 45, false)
 		"ashen":
 			for _tk in range(7):
-				drop.call(func(s, p, _y): Props.add_gnarled_tree(s, p, rng.rr(2.6, 4.6), t.pal, rng, false), 0.58, 1.4, 1.5, 45, false)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "gnarled_tree", p, rng.rr(0.0, TAU), rng.rr(0.76, 1.35)), 0.58, 1.4, 1.5, 45, false)
 		"ember":
 			for _tk in range(6):
-				drop.call(func(s, p, _y): Props.add_gnarled_tree(s, p, rng.rr(2.6, 4.4), t.pal, rng, true), 0.58, 1.4, 1.5, 45, false)
+				drop.call(func(s, p, _y): CWPropLib.stamp(s, "gnarled_ember", p, rng.rr(0.0, TAU), rng.rr(0.76, 1.28)), 0.58, 1.4, 1.5, 45, false)
 
 	# Cliff-perched & hillside boulders across ALL biomes (32-props.js:394: steep=true, 20% large 0.6-1.25m + 80% 0.16-0.5m)
 	var rock_cnt := int(t.bio.get("rock_count", 52))
