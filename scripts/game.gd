@@ -117,7 +117,7 @@ func _load_board(p_seed: int, p_lvl: int, rising: bool) -> void:
 	rig.clear_debris()
 	fx.clear_fx()
 	var info := terrain.build_board(terrain.gfx, p_seed, p_lvl, biome_start)
-	fx.apply_biome(info["bio"], env, info["beacon_pos"], bool(info.get("mirrored", false)))
+	fx.apply_biome(info["bio"], env, info["beacon_pos"])
 	fx.waterfall_pos = info["waterfall_pos"]
 	fx.has_waterfall = bool(info["has_waterfall"])
 	fx.env_srcs = info["env_lights"]

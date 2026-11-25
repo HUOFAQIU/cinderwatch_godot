@@ -843,7 +843,7 @@ mesh = ExtResource("78_wi8ty")
 metadata/mat_tag = "world"
 
 [node name="@MeshInstance3D@645" type="MeshInstance3D" parent="Chunks/Chunk_2_4" unique_id=660532557]
-transform = Transform3D(0.10508586, 0, 0.99446315, 0, 1, 0, -0.99446315, 0, 0.10508586, 2.2231627, 0.06, 2.606516)
+transform = Transform3D(0.10508586, 0, 0.99446315, 0, 1, 0, -0.99446315, 0, 0.10508586, 2.2231627, 0.4, 2.606516)
 mesh = ExtResource("79_gqn8a")
 metadata/mat_tag = "world"
 

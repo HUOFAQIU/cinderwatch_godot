@@ -1,4 +1,4 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://do3f8sq8oxqjl"]
 
 [ext_resource type="ArrayMesh" path="res://assets/models/structures/pad_bright.res" id="1_mqdf7"]
 [ext_resource type="ArrayMesh" path="res://assets/models/structures/pad_marker.res" id="2_m0abx"]
@@ -925,7 +925,7 @@ mesh = ExtResource("91_eyu47")
 metadata/mat_tag = "fall"
 
 [node name="@MeshInstance3D@823" type="MeshInstance3D" parent="Chunks/Chunk_2_5" unique_id=1644686554]
-transform = Transform3D(-0.35613385, 0, 0.93443495, 0, 1, 0, -0.93443495, 0, -0.35613385, 2.2560775, 0.06, -2.1024733)
+transform = Transform3D(-0.35613385, 0, 0.93443495, 0, 1, 0, -0.93443495, 0, -0.35613385, 2.2560775, 0.4, -2.1024733)
 mesh = ExtResource("92_w1vtn")
 metadata/mat_tag = "world"
 

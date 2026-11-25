@@ -664,7 +664,7 @@ mesh = ExtResource("47_iwmsx")
 metadata/mat_tag = "world"
 
 [node name="@MeshInstance3D@289" type="MeshInstance3D" parent="Chunks/Chunk_3_2" unique_id=795012192]
-transform = Transform3D(-0.6354896, 0, 0.77210945, 0, 1, 0, -0.77210945, 0, -0.6354896, 2.518005, 0.06, 0.013571501)
+transform = Transform3D(-0.6354896, 0, 0.77210945, 0, 1, 0, -0.77210945, 0, -0.6354896, 2.518005, 0.4, 0.013571501)
 mesh = ExtResource("48_17mfx")
 metadata/mat_tag = "world"
 

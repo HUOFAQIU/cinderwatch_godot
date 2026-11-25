@@ -3,7 +3,7 @@ extends Node3D
 
 # WYSIWYG Scene-Driven Level Map Loader (scenes/maps/<biome>.tscn)
 # Reads editable RoadPath (Path3D), Pads/, Chunks/, and metadata directly from the .tscn scene,
-# bakes O(1) 0.2m road_lut for high-crowd performance, and supports crumble/rise & odd-level mirroring.
+# bakes O(1) 0.2m road_lut for high-crowd performance, and supports crumble/rise transitions.
 
 const BH := 18.0
 const CHUNK := 6.0
@@ -31,7 +31,6 @@ var road_path: Path3D = null
 var road_lut: Dictionary = {}
 
 var _grid_h: PackedFloat32Array = PackedFloat32Array()
-var _mirror_active: bool = false
 
 
 func build_board(p_gfx: CWGfx, p_seed: int, biome_idx: int, biome_start: int = 0) -> Dictionary:
@@ -39,8 +38,6 @@ func build_board(p_gfx: CWGfx, p_seed: int, biome_idx: int, biome_start: int = 0
 	seed_val = p_seed
 	clear_board()
 
-	var mirrored := (biome_idx & 1) == 1
-	_mirror_active = false
 	bio = CWBiome.get_biome(biome_idx, biome_start)
 	pal = CWBiome.build_palette(bio)
 	gfx.apply_biome_uniforms(bio)
@@ -153,14 +150,10 @@ func build_board(p_gfx: CWGfx, p_seed: int, biome_idx: int, biome_start: int = 0
 		"keep": road[road.size() - 1],
 	}
 
-	if mirrored:
-		_apply_mirror_xz()
-
 	_build_road_smooth()
 	_build_road_lut()
 
 	return {
-		"mirrored": mirrored,
 		"layout": layout,
 		"bio": bio,
 		"pal": pal,
@@ -287,10 +280,8 @@ func get_chunk_node(wx: float, wz: float) -> Node3D:
 func height_at(wx: float, wz: float) -> float:
 	if _grid_h.is_empty():
 		return 0.0
-	var gx := wz if _mirror_active else wx
-	var gz := wx if _mirror_active else wz
-	var u := clampf((gx + BH) / (BH * 2.0) * float(GRID_N - 1), 0.0, float(GRID_N - 1) - 0.001)
-	var v := clampf((gz + BH) / (BH * 2.0) * float(GRID_N - 1), 0.0, float(GRID_N - 1) - 0.001)
+	var u := clampf((wx + BH) / (BH * 2.0) * float(GRID_N - 1), 0.0, float(GRID_N - 1) - 0.001)
+	var v := clampf((wz + BH) / (BH * 2.0) * float(GRID_N - 1), 0.0, float(GRID_N - 1) - 0.001)
 	var ix := int(floorf(u))
 	var iz := int(floorf(v))
 	var fx := u - float(ix)
@@ -303,7 +294,7 @@ func height_at(wx: float, wz: float) -> float:
 		var db := Vector2(wx, wz).distance_to(bridge_pos)
 		if db < 2.25:
 			var w := smoothstep(2.25, 1.35, db)
-			h = maxf(h, lerpf(h, 0.20, w))
+			h = maxf(h, lerpf(h, 0.56, w))
 	return h
 
 
@@ -367,135 +358,3 @@ func clear_board() -> void:
 	road_path = null
 	has_waterfall = false
 	has_bridge = false
-	_mirror_active = false
-
-
-func _mirror_mesh_xz(mesh: Mesh) -> ArrayMesh:
-	var am := ArrayMesh.new()
-	for s_i in range(mesh.get_surface_count()):
-		var arr := mesh.surface_get_arrays(s_i)
-		var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
-		var ns = arr[Mesh.ARRAY_NORMAL]
-		var uv = arr[Mesh.ARRAY_TEX_UV]
-		var cs = arr[Mesh.ARRAY_COLOR]
-		var c0 = arr[Mesh.ARRAY_CUSTOM0]
-		var idx_arr = arr[Mesh.ARRAY_INDEX]
-		var has_n: bool = ns is PackedVector3Array and (ns as PackedVector3Array).size() == vs.size()
-		var has_uv: bool = uv is PackedVector2Array and (uv as PackedVector2Array).size() == vs.size()
-		var has_c: bool = cs is PackedColorArray and (cs as PackedColorArray).size() == vs.size()
-		var has_c0: bool = c0 is PackedFloat32Array and (c0 as PackedFloat32Array).size() == vs.size() * 4
-		var nv := PackedVector3Array()
-		var nn := PackedVector3Array()
-		var nuv := PackedVector2Array()
-		var nc := PackedColorArray()
-		var nc0 := PackedFloat32Array()
-		if idx_arr is PackedInt32Array and (idx_arr as PackedInt32Array).size() > 0:
-			var idxs: PackedInt32Array = idx_arr
-			nv.resize(vs.size())
-			if has_n: nn.resize(vs.size())
-			for i in range(vs.size()):
-				var v := vs[i]
-				nv[i] = Vector3(v.z, v.y, v.x)
-				if has_n:
-					var n_v: Vector3 = (ns as PackedVector3Array)[i]
-					nn[i] = Vector3(n_v.z, n_v.y, n_v.x)
-			var nidx := PackedInt32Array()
-			nidx.resize(idxs.size())
-			for i in range(0, idxs.size() - 2, 3):
-				nidx[i] = idxs[i]; nidx[i + 1] = idxs[i + 2]; nidx[i + 2] = idxs[i + 1]
-			var out_i := []
-			out_i.resize(Mesh.ARRAY_MAX)
-			out_i[Mesh.ARRAY_VERTEX] = nv
-			if has_n: out_i[Mesh.ARRAY_NORMAL] = nn
-			if has_uv: out_i[Mesh.ARRAY_TEX_UV] = uv
-			if has_c: out_i[Mesh.ARRAY_COLOR] = cs
-			if has_c0: out_i[Mesh.ARRAY_CUSTOM0] = c0
-			out_i[Mesh.ARRAY_INDEX] = nidx
-			am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, out_i, [], {}, (Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT) if has_c0 else 0)
-			continue
-		nv.resize(vs.size())
-		if has_n: nn.resize(vs.size())
-		if has_uv: nuv.resize(vs.size())
-		if has_c: nc.resize(vs.size())
-		if has_c0: nc0.resize(vs.size() * 4)
-		for i in range(0, vs.size() - 2, 3):
-			var map_i := [i, i + 2, i + 1]
-			for k in range(3):
-				var dst := i + k
-				var src: int = map_i[k]
-				var v := vs[src]
-				nv[dst] = Vector3(v.z, v.y, v.x)
-				if has_n:
-					var n_v: Vector3 = (ns as PackedVector3Array)[src]
-					nn[dst] = Vector3(n_v.z, n_v.y, n_v.x)
-				if has_uv: nuv[dst] = (uv as PackedVector2Array)[src]
-				if has_c: nc[dst] = (cs as PackedColorArray)[src]
-				if has_c0:
-					for c_k in range(4):
-						nc0[dst * 4 + c_k] = (c0 as PackedFloat32Array)[src * 4 + c_k]
-		var out := []
-		out.resize(Mesh.ARRAY_MAX)
-		out[Mesh.ARRAY_VERTEX] = nv
-		if has_n: out[Mesh.ARRAY_NORMAL] = nn
-		if has_uv: out[Mesh.ARRAY_TEX_UV] = nuv
-		if has_c: out[Mesh.ARRAY_COLOR] = nc
-		if has_c0: out[Mesh.ARRAY_CUSTOM0] = nc0
-		am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, out, [], {}, (Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT) if has_c0 else 0)
-	return am
-
-
-func _mirror_subtree_xz(node: Node) -> void:
-	if node is Node3D:
-		var n3 := node as Node3D
-		n3.position = Vector3(n3.position.z, n3.position.y, n3.position.x)
-		if absf(n3.rotation.y) > 1e-5:
-			n3.rotation.y = PI * 0.5 - n3.rotation.y
-	if node is MeshInstance3D:
-		var mi := node as MeshInstance3D
-		if mi.mesh != null:
-			mi.mesh = _mirror_mesh_xz(mi.mesh)
-	for child in node.get_children():
-		_mirror_subtree_xz(child)
-
-
-func _apply_mirror_xz() -> void:
-	_mirror_active = true
-	if map_root != null:
-		for child in map_root.get_children():
-			if child.name != "RoadPath":
-				_mirror_subtree_xz(child)
-	for ch in chunks:
-		var h: Vector3 = ch["home"]
-		ch["home"] = Vector3(h.z, h.y, h.x)
-		var old_cx: int = int(ch["cx"])
-		ch["cx"] = int(ch["cz"])
-		ch["cz"] = old_cx
-	beacon_pos = Vector3(beacon_pos.z, beacon_pos.y, beacon_pos.x)
-	waterfall_pos = Vector3(waterfall_pos.z, waterfall_pos.y, waterfall_pos.x)
-	bridge_pos = Vector2(bridge_pos.y, bridge_pos.x)
-	for el in env_lights:
-		var p: Vector3 = el["pos"]
-		el["pos"] = Vector3(p.z, p.y, p.x)
-	for ki in range(keep_fires.size()):
-		var p: Vector3 = keep_fires[ki]
-		keep_fires[ki] = Vector3(p.z, p.y, p.x)
-	for pi in range(pond_centers.size()):
-		var p: Vector3 = pond_centers[pi]
-		pond_centers[pi] = Vector3(p.z, p.y, p.x)
-	var rd: Array[Vector2] = layout["road"]
-	for i in range(rd.size()):
-		rd[i] = Vector2(rd[i].y, rd[i].x)
-	if road_path != null and road_path.curve != null:
-		var nc := Curve3D.new()
-		for i in range(road_path.curve.point_count):
-			var pt := road_path.curve.get_point_position(i)
-			nc.add_point(Vector3(pt.z, pt.y, pt.x))
-		road_path.curve = nc
-	for pd in layout["pads"]:
-		var ox: float = float(pd["x"])
-		pd["x"] = float(pd["z"])
-		pd["z"] = ox
-		pd["rot"] = PI * 0.5 - float(pd["rot"])
-		pd["marker_yaw"] = PI * 0.5 - float(pd.get("marker_yaw", 0.0))
-	layout["cave"] = rd[0]
-	layout["keep"] = rd[rd.size() - 1]

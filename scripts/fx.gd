@@ -79,7 +79,7 @@ func init_fx() -> void:
 	CWFxInit.init_fx(self)
 
 
-func apply_biome(bio: Dictionary, env: Environment, p_beacon_pos: Vector3, is_mirrored: bool = false) -> void:
+func apply_biome(bio: Dictionary, env: Environment, p_beacon_pos: Vector3) -> void:
 	beacon_pos = p_beacon_pos
 	biome_key = String(bio.get("key", "ashen"))
 	beacon_mul = float(bio.get("beacon", 1.0))
@@ -87,7 +87,7 @@ func apply_biome(bio: Dictionary, env: Environment, p_beacon_pos: Vector3, is_mi
 
 	var moon_cfg: Array = bio["moon"]
 	var mp0: Vector3 = bio["moon_pos"]
-	var mpos := Vector3(mp0.z, mp0.y, mp0.x) if is_mirrored else mp0
+	var mpos := mp0
 	moon_light.look_at_from_position(mpos, Vector3.ZERO, Vector3.UP)
 	var fill_cfg: Array = bio["fill"]
 	fill_light.look_at_from_position(Vector3(30, 14, 34), Vector3.ZERO, Vector3.UP)
