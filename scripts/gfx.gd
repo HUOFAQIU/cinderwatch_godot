@@ -92,131 +92,35 @@ func apply_biome_uniforms(bio: Dictionary) -> void:
 			mat_fall.set_shader_parameter("u_fb", Vector3(0.32, 0.44, 0.60))
 
 
+const LAYER_NAMES := [
+	"00_dirt", "01_rock", "02_mason", "03_wood", "04_cobble",
+	"05_metal", "06_slate", "07_cloth", "08_plain", "09_bark", "10_leaf"
+]
+
+
+func _load_layer_img(path: String) -> Image:
+	var tex := load(path) as Texture2D
+	var img: Image = tex.get_image() if tex != null else Image.create_empty(TEX_N, TEX_N, false, Image.FORMAT_RGBA8)
+	if img.is_compressed():
+		img.decompress()
+	if img.get_format() != Image.FORMAT_RGBA8:
+		img.convert(Image.FORMAT_RGBA8)
+	img.generate_mipmaps()
+	return img
+
+
 func _make_detail_textures() -> void:
 	var imgs_a: Array[Image] = []
 	var imgs_h: Array[Image] = []
-	# Precompute 8x8 wrapped Voronoi cobble sites (exact 10-gfx.js:19-20)
-	var cob_sites: Array = []
-	var cs := float(TEX_N) / 8.0
-	for cj in range(8):
-		for ci in range(8):
-			cob_sites.append([
-				(float(ci) + 0.2 + 0.6 * CWUtil.h2(float(ci), float(cj), 11.0)) * cs,
-				(float(cj) + 0.2 + 0.6 * CWUtil.h2(float(ci), float(cj), 12.0)) * cs,
-				CWUtil.h2(float(ci), float(cj), 13.0),
-				CWUtil.h2(float(ci), float(cj), 14.0),
-			])
-	for layer in range(TEX_LAYERS):
-		var ia := Image.create_empty(TEX_N, TEX_N, false, Image.FORMAT_RGBA8)
-		var ih := Image.create_empty(TEX_N, TEX_N, false, Image.FORMAT_RGBA8)
-		for y in range(TEX_N):
-			for x in range(TEX_N):
-				var u := float(x) / float(TEX_N)
-				var v := float(y) / float(TEX_N)
-				var n1 := CWUtil.pnoise2(u * 8.0, v * 8.0, 8, 8, float(layer) * 7.1)
-				var n2 := CWUtil.pnoise2(u * 16.0, v * 16.0, 16, 16, float(layer) * 13.7 + 3.0)
-				var shade := 0.5
-				var tint_r := 1.0
-				var tint_b := 1.0
-				var h := 0.5
-				var rough_mod := 0.5
-				match layer:
-					L_DIRT:
-						shade = 0.38 + 0.18 * n1 + 0.09 * n2
-						h = 0.25 + 0.50 * n1 + 0.25 * n2
-					L_ROCK:
-						var ridge := 1.0 - absf(n1 * 2.0 - 1.0)
-						shade = 0.34 + 0.24 * ridge + 0.08 * n2
-						h = 0.15 + 0.65 * ridge + 0.20 * n2
-					L_MASON:
-						var row := int(floorf(v * 6.0))
-						var bx := fmod(u * 3.0 + (0.5 if (row & 1) == 1 else 0.0), 1.0)
-						var by := fmod(v * 6.0, 1.0)
-						var mortar := 1.0 if (bx < 0.08 or by < 0.13) else 0.0
-						var brick_var := CWUtil.h2(floorf(u * 3.0), float(row), 19.0) * 0.14
-						shade = lerpf(0.42 + brick_var + 0.08 * n2, 0.20, mortar)
-						h = lerpf(0.76 + 0.2 * n2, 0.08, mortar)
-					L_WOOD:
-						var grain := CWUtil.pnoise2(u * 4.0, v * 22.0, 4, 22, 31.0)
-						var plank := 1.0 if fmod(u * 4.0, 1.0) < 0.07 else 0.0
-						shade = lerpf(0.42 + 0.18 * grain, 0.20, plank)
-						h = lerpf(0.55 + 0.35 * grain, 0.10, plank)
-					L_COBBLE:
-						var d1 := 1e9
-						var d2 := 1e9
-						var s1_id := 0.5
-						var s1_w := 0.5
-						var fn := float(TEX_N)
-						for cs_i in range(cob_sites.size()):
-							var st: Array = cob_sites[cs_i]
-							var dx := absf(float(x) + 0.5 - float(st[0]))
-							var dy := absf(float(y) + 0.5 - float(st[1]))
-							if dx > fn * 0.5: dx = fn - dx
-							if dy > fn * 0.5: dy = fn - dy
-							var d := sqrt(dx * dx * 0.85 + dy * dy * 1.15)
-							if d < d1:
-								d2 = d1; d1 = d; s1_id = float(st[2]); s1_w = float(st[3])
-							elif d < d2:
-								d2 = d
-						var edge := d2 - d1
-						var cn := CWUtil.pnoise2(float(x) * 0.5, float(y) * 0.5, 32, 32, 51.0) - 0.5
-						if edge < 1.15:
-							shade = (0.36 + cn * 0.10) * 0.5
-							tint_r = 1.04
-							tint_b = 0.95
-							h = 0.04
-						else:
-							var dome := smoothstep(1.15, 4.2, edge)
-							var m := 0.70 + 0.42 * s1_id + cn * 0.16 + dome * 0.10
-							var warm := (s1_w - 0.5) * 0.12
-							tint_r = 1.0 + warm
-							tint_b = 1.0 - warm
-							h = 0.25 + 0.70 * dome + cn * 0.10
-							if s1_id > 0.90:
-								m *= 0.80
-								tint_b *= 1.025
-								h *= 0.70
-							shade = m * 0.5
-					L_METAL:
-						shade = 0.44 + 0.12 * n2
-						h = 0.45 + 0.18 * n2
-						rough_mod = 0.92
-					L_SLATE:
-						var srow := int(floorf(v * 8.0))
-						var sx := fmod(u * 6.0 + (0.5 if (srow & 1) == 1 else 0.0), 1.0)
-						var sy := fmod(v * 8.0, 1.0)
-						var gap := 1.0 if (sx < 0.07 or sy < 0.12) else 0.0
-						shade = lerpf(0.40 + 0.16 * n1, 0.20, gap)
-						h = lerpf(0.35 + 0.55 * sy, 0.08, gap)
-					L_CLOTH:
-						var weave := 0.5 + 0.5 * sin(u * TAU * 16.0) * sin(v * TAU * 16.0)
-						shade = 0.42 + 0.14 * weave + 0.05 * n1
-						h = 0.40 + 0.28 * weave
-					L_BARK:
-						var furrow := CWUtil.pnoise2(u * 14.0, v * 4.0, 14, 4, 51.0)
-						shade = 0.32 + 0.26 * furrow
-						h = 0.12 + 0.82 * furrow
-					L_LEAF:
-						shade = 0.40 + 0.20 * n1 + 0.08 * n2
-						h = 0.28 + 0.55 * n2
-					_:
-						shade = 0.46 + 0.08 * n1
-						h = 0.5
-				var sr := clampf(shade * tint_r, 0.0, 1.0)
-				var sg := clampf(shade, 0.0, 1.0)
-				var sb := clampf(shade * tint_b, 0.0, 1.0)
-				ia.set_pixel(x, y, Color(sr, sg, sb, rough_mod))
-				var hc := clampf(h, 0.0, 1.0)
-				ih.set_pixel(x, y, Color(hc, hc, hc, hc))
-		imgs_a.append(ia)
-		imgs_h.append(ih)
+	for nm: String in LAYER_NAMES:
+		imgs_a.append(_load_layer_img("res://assets/textures/albedo_%s.png" % nm))
+		imgs_h.append(_load_layer_img("res://assets/textures/height_%s.png" % nm))
 	tex_albedo = Texture2DArray.new()
 	tex_albedo.create_from_images(imgs_a)
 	tex_height = Texture2DArray.new()
 	tex_height.create_from_images(imgs_h)
 
 
-# Fast ArrayMesh builder using direct PackedArrays (avoids SurfaceTool overhead)
 class Soup:
 	var verts: PackedVector3Array = PackedVector3Array()
 	var norms: PackedVector3Array = PackedVector3Array()
