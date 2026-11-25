@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_i22at"]
+
+[resource]
+script = ExtResource("1_i22at")
+id = "spider"
+display_name = "Cave Spider"
+tip = "Slips past your footmen."
+hp = 20.0
+spd = 2.25
+bounty = 3
+dmg = 4.0
+atk_t = 0.6
+rig = "bug"
+hit_h = 0.2
+col = Color(0.25, 0.22, 0.26, 1)
+eye = Color(3.4, 0.3, 0.2, 1)
+is_slip = true

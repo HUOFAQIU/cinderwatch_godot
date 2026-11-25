@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_7y70h"]
+
+[resource]
+script = ExtResource("1_7y70h")
+id = "toad"
+display_name = "Bog Toad"
+tip = "Covers ground in long hops."
+hp = 78.0
+spd = 1.0
+bounty = 9
+dmg = 9.0
+rig = "slime"
+unit_scale = 1.15
+hit_h = 0.35
+col = Color(0.36, 0.5, 0.24, 1)
+eye = Color(3, 2.4, 0.3, 1)

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_hdje8"]
+
+[resource]
+script = ExtResource("1_hdje8")
+id = "mummy"
+display_name = "Mummy"
+tip = "Bursts into scarabs when it falls."
+hp = 135.0
+spd = 0.9
+bounty = 14
+dmg = 12.0
+atk_t = 1.1
+unit_scale = 1.1
+hit_h = 0.8
+col = Color(0.84, 0.76, 0.56, 1)
+eye = Color(0.6, 3, 2.6, 1)
+is_skel = true
+split_type = "scarab"
+split_count = 3
+extra_flags = {
+"wraps": true
+}

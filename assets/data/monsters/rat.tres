@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_cw08j"]
+
+[resource]
+script = ExtResource("1_cw08j")
+id = "rat"
+display_name = "Giant Rat"
+tip = "Fast and frail. Comes in packs."
+hp = 13.0
+spd = 2.65
+bounty = 3
+dmg = 3.0
+atk_t = 0.6
+rig = "quad"
+unit_scale = 0.9
+hit_h = 0.25
+col = Color(0.42, 0.35, 0.3, 1)
+eye = Color(3.2, 0.4, 0.3, 1)

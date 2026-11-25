@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CWTowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="1_wg1jy"]
+
+[resource]
+script = ExtResource("1_wg1jy")
+id = "bombard"
+display_name = "Bombard"
+short_name = "Bombard"
+desc = "Heavy mortar shells with splash damage. Ground only."
+cost = PackedInt32Array(120, 130, 190)
+range_levels = PackedFloat32Array(7.4, 8, 8.6)
+min_range = 2.3
+dmg = PackedFloat32Array(36, 60, 98)
+rate = PackedFloat32Array(2.9, 2.7, 2.5)
+unit_count = PackedInt32Array()
+splash = PackedFloat32Array(1.55, 1.8, 2.1)
+jumps = PackedInt32Array()
+slow = PackedFloat32Array()
+slow_t = PackedFloat32Array()
+hp = PackedFloat32Array()
+light_range = PackedFloat32Array(8.5, 10.5, 13)
+light_color = Color(1, 0.46, 0.16, 1)

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_40ohk"]
+
+[resource]
+script = ExtResource("1_40ohk")
+id = "bat"
+display_name = "Bat"
+tip = "Flies over the road. Only archers and spires reach it."
+hp = 20.0
+spd = 2.3
+bounty = 6
+dmg = 0.0
+rig = "fly"
+unit_scale = 1.2
+hit_h = 0.0
+col = Color(0.28, 0.22, 0.3, 1)
+eye = Color(3.2, 0.5, 0.3, 1)
+is_fly = true
+alt = 3.2

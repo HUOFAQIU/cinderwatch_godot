@@ -3,7 +3,7 @@ extends CanvasLayer
 
 # Native Godot Control HUD (scenes/ui.tscn + assets/themes/pixel_theme.tres),
 # lightweight WorldOverlay for 3D-projected HP bars & flying pixel coins,
-# terrain-conforming 3D range/pad rings, integer UI scaling, and gamepad navigation.
+# terrain-conforming 3D range/pad rings, and integer UI scaling.
 
 const FONT_LINE := 9
 const FONT_BASE := 8
@@ -33,7 +33,7 @@ const TOWER_DESC_LINES := {
 }
 
 const ICON_NAMES := [
-	"coin", "flame", "skull", "banner", "hourglass", "sound", "mute",
+	"coin", "flame", "skull", "banner", "sound", "mute",
 	"archer", "bombard", "spire", "guard", "upgrade", "sell",
 	"helm", "hand", "star", "starEmpty", "pause", "play",
 ]
@@ -131,7 +131,6 @@ var show_perf: bool = false
 var selected_pad = null
 var hovered_pad = null
 var menu_t: float = 0.0
-var menu_focus: int = 0
 var sell_armed: bool = false
 var biome_picker_open: bool = false
 var tip_queue: Array[String] = []
@@ -143,7 +142,6 @@ var moved_t: float = 99.0
 var idle_t: float = 99.0
 var title_t: float = 0.0
 var is_panning: bool = false
-var press_id: String = ""
 
 var _wave_hovered: bool = false
 var _cmd_hovered: bool = false
@@ -167,11 +165,6 @@ var banner_text: String = ""
 var banner_t: float = 0.0
 var banner_dur: float = 0.0
 var banner_big: bool = false
-
-# Gamepad state
-var gp_sel: int = -1
-var gp_active: bool = false
-var gp_repeat: float = 0.0
 
 # 3D terrain-conforming range & hover rings
 var ring_range: MeshInstance3D
@@ -288,7 +281,7 @@ func _wire_controls() -> void:
 		biome_picker_open = not biome_picker_open
 		audio.play_sfx("ui_click", 0.6)
 	)
-	_bind_hover_tip(biome_btn, func() -> String: return "Switch biome (B / F1-F5, R reroll)")
+	_bind_hover_tip(biome_btn, func() -> String: return "Switch biome (B / F1-F5)")
 
 	_bio_btns.clear()
 	for bi in range(CWBiome.BIOMES.size()):
@@ -547,11 +540,6 @@ func pick_kind(kind: String) -> void:
 	if hovered_pad != null and hovered_pad["tower"] == null:
 		_do_build(hovered_pad, kind)
 		return
-	if gp_active and gp_sel >= 0 and not game.terrain.layout.is_empty():
-		var pads: Array = game.terrain.layout["pads"]
-		if gp_sel < pads.size() and pads[gp_sel]["tower"] == null:
-			_do_build(pads[gp_sel], kind)
-			return
 	armed_kind = "" if armed_kind == kind else kind
 	selected_pad = null
 	audio.play_sfx("ui_click", 0.5)
@@ -561,7 +549,6 @@ func on_mouse_move(pos: Vector2) -> void:
 	mouse_pos = pos
 	mouse_inside = true
 	moved_t = 0.0
-	gp_active = false
 
 
 func is_point_on_hud(pos: Vector2) -> bool:
@@ -575,14 +562,10 @@ func is_point_on_hud(pos: Vector2) -> bool:
 	return false
 
 
-func on_hud_press(_pos: Vector2) -> void:
-	pass
-
 
 func on_mouse_tap(pos: Vector2, picked_pad) -> bool:
 	mouse_pos = pos
 	mouse_inside = true
-	gp_active = false
 	if is_point_on_hud(pos):
 		return true
 	if picked_pad != null:
@@ -603,14 +586,10 @@ func on_mouse_tap(pos: Vector2, picked_pad) -> bool:
 	return false
 
 
-func on_mouse_up() -> void:
-	press_id = ""
-
 
 func select_pad(pad) -> void:
 	selected_pad = pad
 	menu_t = 0.0
-	menu_focus = 0
 	sell_armed = false
 	_hovered_build_kind = ""
 	if pad != null:
@@ -667,101 +646,6 @@ func show_banner(text: String, dur: float, is_boss: bool) -> void:
 	banner_big = is_boss
 
 
-# --- Gamepad polling ---
-func _poll_gamepad(dt: float) -> void:
-	if game.terrain.layout.is_empty() or game.phase != "play":
-		return
-	var ax := 0.0
-	var ay := 0.0
-	if Input.is_action_pressed("cw_right"):
-		ax += 1.0
-	if Input.is_action_pressed("cw_left"):
-		ax -= 1.0
-	if Input.is_action_pressed("cw_down"):
-		ay += 1.0
-	if Input.is_action_pressed("cw_up"):
-		ay -= 1.0
-	if ax == 0.0 and ay == 0.0:
-		var joy_x := Input.get_joy_axis(0, JOY_AXIS_LEFT_X)
-		var joy_y := Input.get_joy_axis(0, JOY_AXIS_LEFT_Y)
-		if absf(joy_x) > 0.5:
-			ax = signf(joy_x)
-		if absf(joy_y) > 0.5:
-			ay = signf(joy_y)
-
-	gp_repeat -= dt
-	if (ax != 0.0 or ay != 0.0) and gp_repeat <= 0.0:
-		gp_repeat = 0.22
-		gp_active = true
-		touch_input()
-		if selected_pad != null:
-			var n := 4 if selected_pad["tower"] == null else 2
-			var step := int(ax if ax != 0.0 else ay)
-			menu_focus = posmod(menu_focus + step, n)
-			audio.play_sfx("ui_click", 0.45)
-		else:
-			var pads: Array = game.terrain.layout["pads"]
-			if pads.is_empty():
-				return
-			if gp_sel < 0 or gp_sel >= pads.size():
-				gp_sel = 0
-			var cp: Dictionary = pads[gp_sel]
-			var cur := _proj_world(Vector3(cp["x"], cp["y"], cp["z"]))
-			var best := -1
-			var best_sc := 1e9
-			for i in range(pads.size()):
-				if i == gp_sel:
-					continue
-				var p: Dictionary = pads[i]
-				var q := _proj_world(Vector3(p["x"], p["y"], p["z"]))
-				var dx := q.x - cur.x
-				var dy := q.y - cur.y
-				var along := dx * ax + dy * ay
-				if along <= 4.0:
-					continue
-				var off := absf(-dx * ay + dy * ax)
-				var sc := along + off * 2.2
-				if sc < best_sc:
-					best_sc = sc
-					best = i
-			if best >= 0:
-				gp_sel = best
-				audio.play_sfx("ui_click", 0.45)
-	if ax == 0.0 and ay == 0.0:
-		gp_repeat = 0.0
-
-	if Input.is_action_just_pressed("cw_confirm"):
-		touch_input()
-		gp_active = true
-		var pads: Array = game.terrain.layout["pads"]
-		if gp_sel < 0 or gp_sel >= pads.size():
-			gp_sel = 0
-		if selected_pad != null:
-			if selected_pad["tower"] == null:
-				_do_build(selected_pad, CWTowers.TOWER_KINDS[menu_focus % 4])
-			else:
-				if (menu_focus % 2) == 0:
-					_do_upgrade(selected_pad["tower"])
-				else:
-					press_sell_key()
-		elif not pads.is_empty():
-			select_pad(pads[gp_sel])
-	if Input.is_action_just_pressed("cw_cancel"):
-		select_pad(null)
-		armed_kind = ""
-		touch_input()
-	if Input.is_action_just_pressed("cw_upgrade"):
-		var pads: Array = game.terrain.layout["pads"]
-		if gp_sel >= 0 and gp_sel < pads.size() and pads[gp_sel]["tower"] != null:
-			_do_upgrade(pads[gp_sel]["tower"])
-	if Input.is_action_just_pressed("cw_call_wave"):
-		touch_input()
-		if game.call_wave_early():
-			audio.play_sfx("ui_click", 0.8)
-		else:
-			_deny()
-
-
 func update_ui(dt: float) -> void:
 	var win_sz := get_viewport().get_visible_rect().size
 	ui_s = maxi(2, int(roundf(win_sz.y / 430.0)))
@@ -784,8 +668,6 @@ func update_ui(dt: float) -> void:
 	if game.slain != last_slain:
 		last_slain = game.slain
 		slain_bump = 1.0
-
-	_poll_gamepad(dt)
 
 	if selected_pad != null:
 		menu_t += dt
@@ -982,13 +864,11 @@ func _sync_hud_controls(lw: float, lh: float) -> void:
 			build_menu.visible = true
 			build_menu.modulate.a = ma
 			var show_k := _hovered_build_kind
-			if show_k == "" and gp_active:
-				show_k = CWTowers.TOWER_KINDS[menu_focus % 4]
 			for i in range(_build_cards.size()):
 				var knd: String = CWTowers.TOWER_KINDS[i]
 				var cost := int(CWTowers.DEFS[knd]["cost"][0])
 				var can := game.gold >= cost
-				var lit := (_hovered_build_kind == knd) or (gp_active and (menu_focus % 4) == i)
+				var lit := (_hovered_build_kind == knd)
 				var card := _build_cards[i]
 				card.add_theme_stylebox_override("panel", _sb_card_lit if lit else (_sb_card_normal if can else _sb_card_dim))
 				var t_ic := card.find_child("TowerIcon", true, false) as TextureRect
@@ -1040,10 +920,10 @@ func _sync_hud_controls(lw: float, lh: float) -> void:
 
 			upgrade_btn.text = "Max level" if maxed else ("Upgrade %d" % upc)
 			upgrade_btn.add_theme_color_override("font_color", COL_TX if can_up else (COL_DIM if maxed else COL_RED))
-			upgrade_btn.add_theme_stylebox_override("normal", _sb_card_lit if (gp_active and (menu_focus % 2) == 0) else (_sb_card_normal if can_up else _sb_card_dim))
+			upgrade_btn.add_theme_stylebox_override("normal", _sb_card_normal if can_up else _sb_card_dim)
 			sell_btn.text = ("Confirm +%d" % refund) if sell_armed else ("Sell +%d" % refund)
 			sell_btn.add_theme_color_override("font_color", COL_RED if sell_armed else COL_TX)
-			sell_btn.add_theme_stylebox_override("normal", _sb_btn_sell_armed if sell_armed else (_sb_card_lit if (gp_active and (menu_focus % 2) == 1) else _sb_card_normal))
+			sell_btn.add_theme_stylebox_override("normal", _sb_btn_sell_armed if sell_armed else _sb_card_normal)
 
 			var ux := clampf(roundf(p.x - upgrade_menu.size.x * 0.5), 4.0, lw - upgrade_menu.size.x - 4.0)
 			var uy := clampf(roundf(p.y - upgrade_menu.size.y - 7.0), minf(top_bottom + 4.0, lh - upgrade_menu.size.y - 4.0), lh - upgrade_menu.size.y - 4.0)
@@ -1098,12 +978,7 @@ func _sync_hud_controls(lw: float, lh: float) -> void:
 
 func _update_3d_rings(dt: float) -> void:
 	_ring_time += dt
-	var gp_pad = null
-	if gp_active and gp_sel >= 0 and game.phase == "play" and not game.terrain.layout.is_empty():
-		var pads: Array = game.terrain.layout["pads"]
-		if gp_sel < pads.size():
-			gp_pad = pads[gp_sel]
-	var focus_pad = selected_pad if selected_pad != null else (gp_pad if gp_pad != null else hovered_pad)
+	var focus_pad = selected_pad if selected_pad != null else hovered_pad
 	if focus_pad != null and game.phase == "play":
 		var px := float(focus_pad["x"])
 		var pz := float(focus_pad["z"])
@@ -1126,8 +1001,6 @@ func _update_3d_rings(dt: float) -> void:
 				pk = _hovered_build_kind
 			elif armed_kind != "":
 				pk = armed_kind
-			elif selected_pad != null and gp_active:
-				pk = CWTowers.TOWER_KINDS[menu_focus % 4]
 			r = float(CWTowers.DEFS[pk]["range"][0])
 		var rng_key := "%s_%.2f" % [pad_key, r]
 		if rng_key != _ring_range_key:

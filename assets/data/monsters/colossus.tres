@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_3geln"]
+
+[resource]
+script = ExtResource("1_3geln")
+id = "colossus"
+display_name = "Magma Colossus"
+tip = "Speeds up when it is nearly dead."
+hp = 1250.0
+spd = 0.7
+bounty = 200
+lives = 5
+dmg = 60.0
+atk_t = 2.0
+armor = 0.82
+slow_res = 0.35
+unit_scale = 2.75
+hit_h = 2.1
+col = Color(0.95, 0.34, 0.14, 1)
+eye = Color(4, 1.6, 0.3, 1)
+is_boss = true
+is_heavy = true
+enrage = 0.35

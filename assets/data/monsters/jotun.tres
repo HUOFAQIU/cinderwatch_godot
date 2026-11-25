@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_euo3s"]
+
+[resource]
+script = ExtResource("1_euo3s")
+id = "jotun"
+display_name = "Frost Jotun"
+tip = "Its stomp freezes nearby towers."
+hp = 1150.0
+spd = 0.8
+bounty = 200
+lives = 5
+dmg = 52.0
+atk_t = 1.8
+unit_scale = 2.55
+hit_h = 1.9
+col = Color(0.55, 0.75, 1, 1)
+eye = Color(0.8, 2.4, 4, 1)
+is_boss = true
+is_heavy = true
+stomp = {
+"every": 9.5,
+"r": 5.5,
+"stun": 1.8
+}
+extra_flags = {
+"iceclub": true
+}

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_0utnj"]
+
+[resource]
+script = ExtResource("1_0utnj")
+id = "ogre"
+display_name = "Ogre"
+tip = "Smashes footmen aside."
+hp = 1400.0
+spd = 0.8
+bounty = 200
+lives = 5
+dmg = 52.0
+atk_t = 1.8
+unit_scale = 2.4
+hit_h = 1.9
+col = Color(0.56, 0.48, 0.36, 1)
+eye = Color(4, 2.2, 0.3, 1)
+is_boss = true
+is_heavy = true
+extra_flags = {
+"weapon": true
+}

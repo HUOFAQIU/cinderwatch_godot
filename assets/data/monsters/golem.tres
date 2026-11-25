@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_emu0g"]
+
+[resource]
+script = ExtResource("1_emu0g")
+id = "golem"
+display_name = "Stone Golem"
+tip = "Shrugs off arrows and is hard to slow."
+hp = 470.0
+spd = 0.62
+bounty = 34
+lives = 2
+dmg = 26.0
+atk_t = 1.5
+armor = 0.35
+slow_res = 0.5
+unit_scale = 1.55
+hit_h = 1.1
+col = Color(0.55, 0.58, 0.62, 1)
+eye = Color(3.2, 2.6, 1.6, 1)
+is_heavy = true

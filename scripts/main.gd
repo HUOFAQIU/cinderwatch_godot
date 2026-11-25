@@ -473,10 +473,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	CWInputHandler.handle_input(self, event)
 
 
-func _pick_pad(screen_pos: Vector2):
-	return CWInputHandler.pick_pad(self, screen_pos)
-
-
 func _notification(what: int) -> void:
 	if audio == null:
 		return

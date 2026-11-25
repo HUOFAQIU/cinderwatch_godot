@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_m6spq"]
+
+[resource]
+script = ExtResource("1_m6spq")
+id = "queen"
+display_name = "Brood Queen"
+tip = "Keeps hatching spiders."
+hp = 1150.0
+spd = 0.85
+bounty = 200
+lives = 5
+dmg = 40.0
+atk_t = 1.5
+rig = "bug"
+unit_scale = 3.4
+hit_h = 1.0
+col = Color(0.58, 0.32, 0.68, 1)
+eye = Color(3.8, 0.3, 0.9, 1)
+is_boss = true
+summon = {
+"every": 7.5,
+"hp": 1.0,
+"max": 99,
+"n": 2,
+"type": "spider"
+}

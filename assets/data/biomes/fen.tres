@@ -1,0 +1,80 @@
+[gd_resource type="Resource" script_class="CWBiomeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/biome_data.gd" id="1_owd0p"]
+
+[resource]
+script = ExtResource("1_owd0p")
+key = "fen"
+display_name = "Mirefen"
+col_overrides = {
+"bark": 2893856,
+"earth": 3881512,
+"earthD": 2369050,
+"grass": 4216876,
+"grassD": 2899490,
+"leaf": 2770470,
+"leafL": 5008436,
+"moss": 5007406,
+"mud": 2762780,
+"road": 7105110,
+"roadD": 4737082,
+"stone": 6056024,
+"stoneD": 3686964,
+"stoneL": 8687738,
+"tuftA": 4745776,
+"tuftB": 8030784
+}
+strata = PackedInt64Array(5921344, 2896422, 4866096, 6713434, 3813408, 4476986, 7830108, 3356714)
+hemi = [5215362, 1712664, 1.05]
+moon = [10938052, 1.3]
+fill = [3108710, 0.3]
+moon_pos = Vector3(10, 46, -32)
+clear_color = Color(0.003, 0.007, 0.006, 1)
+sky_color = Color(0.018, 0.05, 0.036, 1)
+lift = Vector3(0.008, 0.02, 0.016)
+sat = 0.94
+expo = 1.02
+cover = Vector4(0.85, 0.8, 1.1, 0.55)
+cover_col = Vector3(0.075, 0.125, 0.05)
+cover_p = Vector4(0.92, 0.3, 0.4, 0)
+wat = Vector4(3, 0.3, 0.55, 0)
+wat_a = Vector3(0.012, 0.026, 0.012)
+wat_b = Vector3(0.1, 0.2, 0.045)
+wind = 0.7
+mist_amb = Vector3(0.035, 0.1, 0.075)
+mist = Vector4(-0.1, 0.62, 1.1, 0.12)
+wx = {
+"al_a": Vector3(1, 1.3, 0),
+"al_b": Vector3(0.5, 0, 0),
+"amb": Vector3(0.09, 0.2, 0.15),
+"col_a": Vector4(1.3, 1.9, 0.4, 0),
+"col_b": Vector4(0.7, 0.95, 0.7, 1),
+"n": Vector2(0.045, 0.09),
+"size_a": Vector2(0.05, 0.085),
+"size_b": Vector2(0.03, 0.05),
+"sway_a": Vector2(1.3, 0.45),
+"sway_b": Vector2(0.6, 0.4),
+"vel_a": Vector3(0.12, 0.02, 0.08),
+"vel_b": Vector3(0.2, -0.07, 0.12),
+"ya": Vector2(0.3, 3.4),
+"yb": Vector2(-1, 7)
+}
+mobs = {
+"bomber": 0.5,
+"brood": 2.0,
+"mummy": 0.0,
+"slime": 1.6,
+"spider": 2.0,
+"toad": 3.5,
+"wisp": 1.8
+}
+early = {
+"brood": 6,
+"toad": 2,
+"wisp": 3
+}
+boss = PackedStringArray("queen")
+tints = {
+"golem": Color(0.75, 1, 0.6, 1),
+"wisp": Color(0.5, 1.4, 0.7, 1)
+}

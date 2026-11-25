@@ -11,39 +11,14 @@ signal tower_sold(t: Dictionary)
 const TOWER_SCENE := preload("res://scenes/tower_node.tscn")
 const TOWER_KINDS := ["archer", "bombard", "spire", "guard"]
 
-const DEFS := {
-	"archer": {
-		"name": "Archer Tower", "short": "Archers",
-		"cost": [70, 90, 140], "range": [6.2, 6.8, 7.4], "dmg": [9.0, 11.0, 14.0],
-		"rate": [0.85, 0.78, 0.70], "n": [1, 2, 3], "air": true, "ground": true,
-		"light": [10.0, 13.0, 16.0], "col": Color(1.0, 0.58, 0.22),
-		"desc": "Fast flaming arrows. Hits flyers.",
-	},
-	"bombard": {
-		"name": "Bombard", "short": "Bombard",
-		"cost": [120, 130, 190], "range": [7.4, 8.0, 8.6], "min_range": 2.3,
-		"dmg": [36.0, 60.0, 98.0], "splash": [1.55, 1.8, 2.1], "rate": [2.9, 2.7, 2.5],
-		"air": false, "ground": true,
-		"light": [8.5, 10.5, 13.0], "col": Color(1.0, 0.46, 0.16),
-		"desc": "Heavy mortar shells with splash damage. Ground only.",
-	},
-	"spire": {
-		"name": "Storm Spire", "short": "Spire",
-		"cost": [110, 120, 180], "range": [5.5, 6.0, 6.5], "dmg": [17.0, 25.0, 35.0],
-		"jumps": [3, 4, 6], "rate": [2.3, 2.1, 1.9], "slow": [0.36, 0.42, 0.48], "slow_t": [1.3, 1.5, 1.7],
-		"air": true, "ground": true,
-		"light": [7.5, 9.5, 12.0], "col": Color(0.40, 0.80, 1.0),
-		"desc": "Chain lightning that slows. Hits flyers.",
-	},
-	"guard": {
-		"name": "Guard Post", "short": "Guards",
-		"cost": [80, 90, 150], "range": [3.4, 3.7, 4.0], "n": [2, 3, 3],
-		"hp": [62.0, 90.0, 135.0], "dmg": [7.0, 10.0, 15.0], "rate": [7.0, 6.0, 5.0],
-		"air": false, "ground": true,
-		"light": [9.0, 11.5, 14.0], "col": Color(1.0, 0.64, 0.26),
-		"desc": "Footmen who block and duel monsters on the road.",
-	},
-}
+static var DEFS: Dictionary = {}
+
+
+static func _static_init() -> void:
+	for knd in TOWER_KINDS:
+		var res := load("res://assets/data/towers/%s.tres" % knd) as CWTowerData
+		if res != null:
+			DEFS[knd] = res.to_dict()
 
 var gfx: CWGfx
 var fx: CWFx

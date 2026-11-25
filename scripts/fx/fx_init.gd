@@ -338,5 +338,3 @@ static func _init_particle_meshes(f: CWFx) -> void:
 	f.ring_mmi.material_override = r_mat
 	f.ring_mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	f.add_child(f.ring_mmi)
-
-

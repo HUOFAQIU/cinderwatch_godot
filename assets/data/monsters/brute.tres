@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_ciea4"]
+
+[resource]
+script = ExtResource("1_ciea4")
+id = "brute"
+display_name = "Troll"
+tip = "Heals unless you keep hitting it."
+hp = 360.0
+spd = 0.82
+bounty = 30
+lives = 2
+dmg = 24.0
+atk_t = 1.4
+unit_scale = 1.5
+hit_h = 1.0
+col = Color(0.44, 0.46, 0.68, 1)
+eye = Color(3.4, 2.4, 0.4, 1)
+is_heavy = true
+regen = 0.035
+extra_flags = {
+"weapon": true
+}

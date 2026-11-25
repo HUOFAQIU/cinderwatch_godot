@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CWTowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="1_2f2sj"]
+
+[resource]
+script = ExtResource("1_2f2sj")
+id = "guard"
+display_name = "Guard Post"
+short_name = "Guards"
+desc = "Footmen who block and duel monsters on the road."
+cost = PackedInt32Array(80, 90, 150)
+range_levels = PackedFloat32Array(3.4, 3.7, 4)
+dmg = PackedFloat32Array(7, 10, 15)
+rate = PackedFloat32Array(7, 6, 5)
+unit_count = PackedInt32Array(2, 3, 3)
+splash = PackedFloat32Array()
+jumps = PackedInt32Array()
+slow = PackedFloat32Array()
+slow_t = PackedFloat32Array()
+hp = PackedFloat32Array(62, 90, 135)
+light_range = PackedFloat32Array(9, 11.5, 14)
+light_color = Color(1, 0.64, 0.26, 1)

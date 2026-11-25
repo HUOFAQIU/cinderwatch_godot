@@ -1,0 +1,76 @@
+[gd_resource type="Resource" script_class="CWBiomeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/biome_data.gd" id="1_tp4jk"]
+
+[resource]
+script = ExtResource("1_tp4jk")
+key = "ember"
+display_name = "Emberscar"
+col_overrides = {
+"bark": 1380623,
+"earth": 3024680,
+"earthD": 1841177,
+"grass": 3813164,
+"grassD": 2498076,
+"moss": 3813936,
+"mud": 1971990,
+"road": 6182482,
+"roadD": 3946036,
+"stone": 4209730,
+"stoneD": 2368040,
+"stoneL": 6183522,
+"tuftA": 3812388,
+"tuftB": 6965808
+}
+strata = PackedInt64Array(3814972, 1841696, 5909026, 2762284, 7223844, 2367526, 4867664, 3152408)
+hemi = [6050928, 2888718, 1.18]
+moon = [12628176, 1.32]
+fill = [13650464, 0.25]
+moon_pos = Vector3(18, 40, -32)
+clear_color = Color(0.008, 0.004, 0.006, 1)
+sky_color = Color(0.02, 0.006, 0.002, 1)
+lift = Vector3(0.02, 0.011, 0.012)
+sat = 0.96
+cover = Vector4(0.8, 0.74, 1, 0.6)
+cover_col = Vector3(0.1, 0.092, 0.1)
+cover_p = Vector4(0.97, 0.4, 0.4, 0)
+wat = Vector4(2, 1, 1.5, 0.5)
+wat_a = Vector3(0.22, 0.02, 0)
+wat_b = Vector3(0.03, 0.026, 0.03)
+wind = 0.9
+mist_amb = Vector3(0.09, 0.05, 0.05)
+mist = Vector4(-0.3, 0.5, 0.9, 0.1)
+wx = {
+"al_a": Vector3(0.85, 0, 0),
+"al_b": Vector3(1, 2.2, 0.3),
+"amb": Vector3(0.5, 0.3, 0.26),
+"col_a": Vector4(0.3, 0.28, 0.3, 1),
+"col_b": Vector4(2.6, 0.9, 0.14, 0),
+"n": Vector2(0.26, 0.12),
+"size_a": Vector2(0.035, 0.07),
+"size_b": Vector2(0.03, 0.05),
+"sway_a": Vector2(0.5, 0.7),
+"sway_b": Vector2(0.7, 0.9),
+"vel_a": Vector3(0.3, -0.42, 0.16),
+"vel_b": Vector3(0.2, 0.85, 0.12),
+"ya": Vector2(-3, 14),
+"yb": Vector2(-2, 10)
+}
+mobs = {
+"bomber": 2.4,
+"gargoyle": 2.0,
+"golem": 1.8,
+"slime": 0.5,
+"toad": 0.0,
+"wisp": 1.4
+}
+early = {
+"bomber": 2,
+"gargoyle": 4,
+"golem": 6
+}
+boss = PackedStringArray("colossus")
+tints = {
+"golem": Color(1.5, 0.5, 0.26, 1),
+"wisp": Color(1.5, 0.6, 0.2, 1)
+}

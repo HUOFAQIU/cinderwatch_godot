@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_8f7il"]
+
+[resource]
+script = ExtResource("1_8f7il")
+id = "wraith"
+display_name = "Wraith"
+tip = "Arrows and swords miss while it fades."
+hp = 58.0
+spd = 1.3
+bounty = 11
+dmg = 0.0
+unit_scale = 1.02
+hit_h = 0.8
+col = Color(0.35, 0.78, 0.95, 1)
+eye = Color(0.8, 2.4, 3.6, 1)
+is_ghost = true
+extra_flags = {
+"hood": true
+}

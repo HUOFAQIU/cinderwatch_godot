@@ -90,11 +90,6 @@ func cycle_biome() -> void:
 	switch_biome(biome_start + level + 1)
 
 
-func reroll_seed() -> void:
-	var cur_idx := (biome_start + level) % CWBiome.BIOMES.size()
-	switch_biome(cur_idx)
-
-
 func start_new_run() -> void:
 	level = 0
 	k = 0

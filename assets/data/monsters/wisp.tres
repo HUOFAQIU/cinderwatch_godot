@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_2m11s"]
+
+[resource]
+script = ExtResource("1_2m11s")
+id = "wisp"
+display_name = "Wisp"
+tip = "A fast flyer. Easy to kill, hard to catch."
+hp = 10.0
+spd = 3.0
+bounty = 2
+dmg = 0.0
+rig = "wisp"
+hit_h = 0.0
+col = Color(0.75, 0.95, 1.4, 1)
+eye = Color(1.2, 1.6, 2.2, 1)
+is_fly = true
+alt = 1.8

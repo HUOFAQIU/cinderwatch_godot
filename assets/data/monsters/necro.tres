@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_1lka8"]
+
+[resource]
+script = ExtResource("1_1lka8")
+id = "necro"
+display_name = "Necromancer"
+tip = "Raises skeletons as it walks."
+hp = 105.0
+spd = 0.85
+bounty = 18
+atk_t = 1.2
+unit_scale = 1.08
+hit_h = 0.8
+col = Color(0.3, 0.45, 0.34, 1)
+eye = Color(0.6, 3.4, 1, 1)
+is_skel = true
+summon = {
+"every": 7.5,
+"hp": 0.6,
+"max": 3,
+"n": 2,
+"type": "skel"
+}
+extra_flags = {
+"hood": true,
+"staff": true
+}

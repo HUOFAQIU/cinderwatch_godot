@@ -28,7 +28,6 @@ static func handle_input(m: CWMain, event: InputEvent) -> void:
 			if not m._drag_panning and mpos.distance_to(m._drag_start) > 6.0:
 				m._drag_panning = true
 				m.ui.is_panning = true
-				m.ui.press_id = ""
 				m.cam_za.clear()
 			if m._drag_panning:
 				var dp := mpos - m._drag_last
@@ -49,8 +48,6 @@ static func handle_input(m: CWMain, event: InputEvent) -> void:
 				m._drag_start = mb.position
 				m._drag_last = mb.position
 				m._drag_on_hud = m.ui.is_point_on_hud(mb.position)
-				if m._drag_on_hud:
-					m.ui.on_hud_press(mb.position)
 			else:
 				var was_pan := m._drag_panning
 				m._drag_down = false
@@ -70,7 +67,6 @@ static func handle_input(m: CWMain, event: InputEvent) -> void:
 						else:
 							m._last_tap_ms = now_ms
 							m._last_tap_pos = mb.position
-				m.ui.on_mouse_up()
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
 			m.ui.select_pad(null)
 			m.ui.armed_kind = ""
@@ -96,12 +92,6 @@ static func handle_input(m: CWMain, event: InputEvent) -> void:
 			m.ui.biome_picker_open = false
 			m.ui.select_pad(null)
 			m.game.cycle_biome()
-			m.audio.play_sfx("ui_click", 0.7)
-			return
-		elif ke.keycode == KEY_R:
-			m.ui.biome_picker_open = false
-			m.ui.select_pad(null)
-			m.game.reroll_seed()
 			m.audio.play_sfx("ui_click", 0.7)
 			return
 		elif ke.keycode >= KEY_F1 and ke.keycode <= KEY_F5:
@@ -201,5 +191,3 @@ static func pick_pad(m: CWMain, screen_pos: Vector2):
 					best = pad
 			h += 0.6
 	return best
-
-

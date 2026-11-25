@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_qq50j"]
+
+[resource]
+script = ExtResource("1_qq50j")
+id = "gargoyle"
+display_name = "Gargoyle"
+tip = "A flyer that shrugs off arrows."
+hp = 90.0
+spd = 1.6
+bounty = 13
+dmg = 0.0
+armor = 0.5
+rig = "fly"
+unit_scale = 1.35
+hit_h = 0.0
+col = Color(0.48, 0.5, 0.54, 1)
+eye = Color(3.6, 1.2, 0.2, 1)
+is_fly = true
+alt = 2.8

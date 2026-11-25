@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_n40lc"]
+
+[resource]
+script = ExtResource("1_n40lc")
+id = "skel"
+display_name = "Skeleton"
+hp = 34.0
+spd = 1.35
+bounty = 6
+dmg = 6.0
+atk_t = 0.95
+hit_h = 0.75
+col = Color(0.84, 0.8, 0.72, 1)
+eye = Color(3.4, 0.9, 0.2, 1)
+is_skel = true
+extra_flags = {
+"weapon": true
+}

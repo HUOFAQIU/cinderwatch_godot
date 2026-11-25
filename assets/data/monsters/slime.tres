@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_vfbna"]
+
+[resource]
+script = ExtResource("1_vfbna")
+id = "slime"
+display_name = "Slime"
+tip = "Splits in two when it dies."
+hp = 95.0
+spd = 0.82
+bounty = 9
+dmg = 8.0
+atk_t = 1.2
+rig = "slime"
+hit_h = 0.35
+col = Color(0.32, 0.78, 0.3, 1)
+eye = Color(1.8, 2.8, 0.4, 1)
+split_type = "slimelet"
+split_count = 2

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_n268w"]
+
+[resource]
+script = ExtResource("1_n268w")
+id = "wolf"
+display_name = "Dire Wolf"
+tip = "Fast, and it bites hard."
+hp = 38.0
+spd = 2.7
+bounty = 7
+dmg = 12.0
+atk_t = 0.7
+rig = "quad"
+unit_scale = 1.25
+hit_h = 0.4
+col = Color(0.45, 0.48, 0.56, 1)
+eye = Color(3.4, 2.6, 0.3, 1)

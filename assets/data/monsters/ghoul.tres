@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_xt3wd"]
+
+[resource]
+script = ExtResource("1_xt3wd")
+id = "ghoul"
+display_name = "Ghoul"
+tip = "Runs faster the more it is hurt."
+hp = 40.0
+spd = 1.85
+bounty = 7
+dmg = 9.0
+atk_t = 0.7
+unit_scale = 0.78
+hit_h = 0.55
+col = Color(0.56, 0.48, 0.72, 1)
+eye = Color(3.2, 2.8, 0.6, 1)
+frenzy = 0.55

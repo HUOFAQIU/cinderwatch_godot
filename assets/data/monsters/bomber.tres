@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_jx031"]
+
+[resource]
+script = ExtResource("1_jx031")
+id = "bomber"
+display_name = "Sapper"
+tip = "Its powder keg blows up friend and foe."
+hp = 38.0
+spd = 1.55
+bounty = 8
+lives = 2
+dmg = 0.0
+hit_h = 0.75
+col = Color(0.74, 0.62, 0.52, 1)
+eye = Color(3.6, 1.4, 0.2, 1)
+is_skel = true
+explode = {
+"dmg": 46.0,
+"men": 30.0,
+"r": 1.8
+}
+extra_flags = {
+"keg": true
+}

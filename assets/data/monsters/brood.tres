@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_vlt5j"]
+
+[resource]
+script = ExtResource("1_vlt5j")
+id = "brood"
+display_name = "Brood Mother"
+tip = "Bursts into spiders when it falls."
+hp = 230.0
+spd = 0.92
+bounty = 24
+lives = 2
+dmg = 14.0
+rig = "bug"
+unit_scale = 2.1
+hit_h = 0.5
+col = Color(0.45, 0.28, 0.42, 1)
+eye = Color(3.4, 0.3, 0.2, 1)
+split_type = "spider"
+split_count = 5

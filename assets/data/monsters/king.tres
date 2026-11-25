@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_hsowj"]
+
+[resource]
+script = ExtResource("1_hsowj")
+id = "king"
+display_name = "The Buried King"
+tip = "Summons mummies to walk with him."
+hp = 1250.0
+spd = 0.86
+bounty = 200
+lives = 5
+dmg = 46.0
+atk_t = 1.7
+unit_scale = 2.5
+hit_h = 2.1
+col = Color(0.86, 0.74, 0.4, 1)
+eye = Color(0.6, 3, 2.6, 1)
+is_boss = true
+is_skel = true
+is_heavy = true
+summon = {
+"every": 9.0,
+"hp": 0.7,
+"max": 99,
+"n": 1,
+"type": "mummy"
+}
+extra_flags = {
+"crown": true,
+"weapon": true
+}

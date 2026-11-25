@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_c0xan"]
+
+[resource]
+script = ExtResource("1_c0xan")
+id = "drummer"
+display_name = "War Drummer"
+tip = "Speeds up everything near it."
+hp = 92.0
+spd = 1.15
+bounty = 14
+dmg = 6.0
+unit_scale = 1.08
+hit_h = 0.8
+col = Color(0.78, 0.32, 0.24, 1)
+eye = Color(3.6, 0.6, 0.2, 1)
+is_skel = true
+aura_radius = 3.5
+aura_boost = 0.3
+extra_flags = {
+"drum": true
+}

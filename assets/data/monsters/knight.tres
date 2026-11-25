@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_emy7g"]
+
+[resource]
+script = ExtResource("1_emy7g")
+id = "knight"
+display_name = "Skeleton Knight"
+tip = "Its armor turns most arrows."
+hp = 118.0
+spd = 1.0
+bounty = 15
+dmg = 11.0
+atk_t = 1.05
+armor = 0.35
+unit_scale = 1.08
+hit_h = 0.8
+col = Color(0.55, 0.6, 0.7, 1)
+eye = Color(0.5, 1.7, 3.4, 1)
+is_skel = true
+extra_flags = {
+"armor_suit": true,
+"shield": true,
+"weapon": true
+}

@@ -9,36 +9,21 @@ signal new_mob_spawned(mob_type: String)
 # All 21 monster types + 6 biome bosses with full special abilities
 # Ported from 61-monsters.js
 
-const DEFS := {
-	"skel": {"skel": true, "eye": Color(3.4, 0.9, 0.2), "name": "Skeleton", "hp": 34.0, "spd": 1.35, "bounty": 6, "lives": 1, "hit_h": 0.75, "dmg": 6.0, "atk_t": 0.95, "scale": 1.0, "rig": "human", "col": Color(0.84, 0.80, 0.72), "weapon": true},
-	"rat": {"tip": "Fast and frail. Comes in packs.", "eye": Color(3.2, 0.4, 0.3), "name": "Giant Rat", "hp": 13.0, "spd": 2.65, "bounty": 3, "lives": 1, "hit_h": 0.25, "dmg": 3.0, "atk_t": 0.6, "scale": 0.9, "rig": "quad", "col": Color(0.42, 0.35, 0.30)},
-	"slime": {"tip": "Splits in two when it dies.", "eye": Color(1.8, 2.8, 0.4), "name": "Slime", "hp": 95.0, "spd": 0.82, "bounty": 9, "lives": 1, "hit_h": 0.35, "dmg": 8.0, "atk_t": 1.2, "scale": 1.0, "rig": "slime", "col": Color(0.32, 0.78, 0.30), "split": ["slimelet", 2]},
-	"slimelet": {"eye": Color(1.8, 2.8, 0.4), "name": "Slimelet", "hp": 30.0, "spd": 1.20, "bounty": 3, "lives": 1, "hit_h": 0.22, "dmg": 4.0, "atk_t": 1.0, "scale": 0.58, "rig": "slime", "col": Color(0.40, 0.85, 0.36)},
-	"knight": {"skel": true, "armor_suit": true, "tip": "Its armor turns most arrows.", "eye": Color(0.5, 1.7, 3.4), "name": "Skeleton Knight", "hp": 118.0, "spd": 1.00, "bounty": 15, "lives": 1, "hit_h": 0.8, "dmg": 11.0, "atk_t": 1.05, "scale": 1.08, "rig": "human", "col": Color(0.55, 0.60, 0.70), "armor": 0.35, "weapon": true, "shield": true},
-	"bat": {"tip": "Flies over the road. Only archers and spires reach it.", "eye": Color(3.2, 0.5, 0.3), "name": "Bat", "hp": 20.0, "spd": 2.30, "bounty": 6, "lives": 1, "hit_h": 0.0, "dmg": 0.0, "atk_t": 1.0, "scale": 1.2, "rig": "fly", "col": Color(0.28, 0.22, 0.30), "fly": true, "alt": 3.2},
-	"ghoul": {"tip": "Runs faster the more it is hurt.", "eye": Color(3.2, 2.8, 0.6), "name": "Ghoul", "hp": 40.0, "spd": 1.85, "bounty": 7, "lives": 1, "hit_h": 0.55, "dmg": 9.0, "atk_t": 0.7, "scale": 0.78, "rig": "human", "col": Color(0.56, 0.48, 0.72), "frenzy": 0.55},
-	"spider": {"tip": "Slips past your footmen.", "eye": Color(3.4, 0.3, 0.2), "name": "Cave Spider", "hp": 20.0, "spd": 2.25, "bounty": 3, "lives": 1, "hit_h": 0.2, "dmg": 4.0, "atk_t": 0.6, "scale": 1.0, "rig": "bug", "col": Color(0.25, 0.22, 0.26), "slip": true},
-	"scarab": {"eye": Color(1.2, 3.0, 2.6), "name": "Scarab", "hp": 9.0, "spd": 2.50, "bounty": 1, "lives": 1, "hit_h": 0.14, "dmg": 2.0, "atk_t": 0.6, "scale": 0.55, "rig": "bug", "col": Color(0.85, 0.68, 0.26), "slip": true},
-	"wolf": {"tip": "Fast, and it bites hard.", "eye": Color(3.4, 2.6, 0.3), "name": "Dire Wolf", "hp": 38.0, "spd": 2.70, "bounty": 7, "lives": 1, "hit_h": 0.4, "dmg": 12.0, "atk_t": 0.7, "scale": 1.25, "rig": "quad", "col": Color(0.45, 0.48, 0.56)},
-	"bomber": {"skel": true, "tip": "Its powder keg blows up friend and foe.", "eye": Color(3.6, 1.4, 0.2), "name": "Sapper", "hp": 38.0, "spd": 1.55, "bounty": 8, "lives": 2, "hit_h": 0.75, "dmg": 0.0, "atk_t": 1.0, "scale": 1.0, "rig": "human", "col": Color(0.74, 0.62, 0.52), "keg": true, "explode": {"r": 1.8, "dmg": 46.0, "men": 30.0}},
-	"wraith": {"tip": "Arrows and swords miss while it fades.", "eye": Color(0.8, 2.4, 3.6), "name": "Wraith", "hp": 58.0, "spd": 1.30, "bounty": 11, "lives": 1, "hit_h": 0.8, "dmg": 0.0, "atk_t": 1.0, "scale": 1.02, "rig": "human", "col": Color(0.35, 0.78, 0.95), "ghost": true, "hood": true},
-	"toad": {"tip": "Covers ground in long hops.", "eye": Color(3.0, 2.4, 0.3), "name": "Bog Toad", "hp": 78.0, "spd": 1.00, "bounty": 9, "lives": 1, "hit_h": 0.35, "dmg": 9.0, "atk_t": 1.0, "scale": 1.15, "rig": "slime", "col": Color(0.36, 0.50, 0.24)},
-	"wisp": {"tip": "A fast flyer. Easy to kill, hard to catch.", "eye": Color(1.2, 1.6, 2.2), "name": "Wisp", "hp": 10.0, "spd": 3.00, "bounty": 2, "lives": 1, "hit_h": 0.0, "dmg": 0.0, "atk_t": 1.0, "scale": 1.0, "rig": "wisp", "col": Color(0.75, 0.95, 1.4), "fly": true, "alt": 1.8},
-	"drummer": {"skel": true, "tip": "Speeds up everything near it.", "eye": Color(3.6, 0.6, 0.2), "name": "War Drummer", "hp": 92.0, "spd": 1.15, "bounty": 14, "lives": 1, "hit_h": 0.8, "dmg": 6.0, "atk_t": 1.0, "scale": 1.08, "rig": "human", "col": Color(0.78, 0.32, 0.24), "drum": true, "aura": [3.5, 0.30]},
-	"gargoyle": {"tip": "A flyer that shrugs off arrows.", "eye": Color(3.6, 1.2, 0.2), "name": "Gargoyle", "hp": 90.0, "spd": 1.60, "bounty": 13, "lives": 1, "hit_h": 0.0, "dmg": 0.0, "atk_t": 1.0, "scale": 1.35, "rig": "fly", "col": Color(0.48, 0.50, 0.54), "fly": true, "armor": 0.50, "alt": 2.8},
-	"necro": {"skel": true, "tip": "Raises skeletons as it walks.", "eye": Color(0.6, 3.4, 1.0), "name": "Necromancer", "hp": 105.0, "spd": 0.85, "bounty": 18, "lives": 1, "hit_h": 0.8, "dmg": 5.0, "atk_t": 1.2, "scale": 1.08, "rig": "human", "col": Color(0.30, 0.45, 0.34), "hood": true, "staff": true, "summon": {"type": "skel", "n": 2, "every": 7.5, "max": 3, "hp": 0.6}},
-	"mummy": {"skel": true, "wraps": true, "tip": "Bursts into scarabs when it falls.", "eye": Color(0.6, 3.0, 2.6), "name": "Mummy", "hp": 135.0, "spd": 0.90, "bounty": 14, "lives": 1, "hit_h": 0.8, "dmg": 12.0, "atk_t": 1.1, "scale": 1.1, "rig": "human", "col": Color(0.84, 0.76, 0.56), "split": ["scarab", 3]},
-	"brute": {"tip": "Heals unless you keep hitting it.", "eye": Color(3.4, 2.4, 0.4), "name": "Troll", "hp": 360.0, "spd": 0.82, "bounty": 30, "lives": 2, "hit_h": 1.0, "dmg": 24.0, "atk_t": 1.4, "scale": 1.5, "rig": "human", "col": Color(0.44, 0.46, 0.68), "heavy": true, "weapon": true, "regen": 0.035},
-	"golem": {"tip": "Shrugs off arrows and is hard to slow.", "eye": Color(3.2, 2.6, 1.6), "name": "Stone Golem", "hp": 470.0, "spd": 0.62, "bounty": 34, "lives": 2, "hit_h": 1.1, "dmg": 26.0, "atk_t": 1.5, "scale": 1.55, "rig": "human", "col": Color(0.55, 0.58, 0.62), "heavy": true, "armor": 0.35, "slow_res": 0.5},
-	"brood": {"tip": "Bursts into spiders when it falls.", "eye": Color(3.4, 0.3, 0.2), "name": "Brood Mother", "hp": 230.0, "spd": 0.92, "bounty": 24, "lives": 2, "hit_h": 0.5, "dmg": 14.0, "atk_t": 1.0, "scale": 2.1, "rig": "bug", "col": Color(0.45, 0.28, 0.42), "split": ["spider", 5]},
-	# Bosses (every 5th wave)
-	"giant": {"skel": true, "tip": "Slow and enormous. Hit it with everything.", "eye": Color(4.5, 0.9, 0.2), "name": "Bone Giant", "hp": 1250.0, "spd": 0.88, "bounty": 200, "lives": 5, "hit_h": 2.1, "dmg": 46.0, "atk_t": 1.7, "scale": 2.5, "rig": "human", "col": Color(0.88, 0.84, 0.74), "heavy": true, "horns": true, "greatsword": true, "boss": true},
-	"ogre": {"tip": "Smashes footmen aside.", "eye": Color(4.0, 2.2, 0.3), "name": "Ogre", "hp": 1400.0, "spd": 0.80, "bounty": 200, "lives": 5, "hit_h": 1.9, "dmg": 52.0, "atk_t": 1.8, "scale": 2.4, "rig": "human", "col": Color(0.56, 0.48, 0.36), "heavy": true, "weapon": true, "boss": true},
-	"jotun": {"tip": "Its stomp freezes nearby towers.", "eye": Color(0.8, 2.4, 4.0), "name": "Frost Jotun", "hp": 1150.0, "spd": 0.80, "bounty": 200, "lives": 5, "hit_h": 1.9, "dmg": 52.0, "atk_t": 1.8, "scale": 2.55, "rig": "human", "col": Color(0.55, 0.75, 1.0), "heavy": true, "iceclub": true, "boss": true, "stomp": {"every": 9.5, "r": 5.5, "stun": 1.8}},
-	"queen": {"tip": "Keeps hatching spiders.", "eye": Color(3.8, 0.3, 0.9), "name": "Brood Queen", "hp": 1150.0, "spd": 0.85, "bounty": 200, "lives": 5, "hit_h": 1.0, "dmg": 40.0, "atk_t": 1.5, "scale": 3.4, "rig": "bug", "col": Color(0.58, 0.32, 0.68), "boss": true, "summon": {"type": "spider", "n": 2, "every": 7.5, "max": 99, "hp": 1.0}},
-	"colossus": {"tip": "Speeds up when it is nearly dead.", "eye": Color(4.0, 1.6, 0.3), "name": "Magma Colossus", "hp": 1250.0, "spd": 0.70, "bounty": 200, "lives": 5, "hit_h": 2.1, "dmg": 60.0, "atk_t": 2.0, "scale": 2.75, "rig": "human", "col": Color(0.95, 0.34, 0.14), "heavy": true, "boss": true, "armor": 0.82, "slow_res": 0.35, "enrage": 0.35},
-	"king": {"skel": true, "tip": "Summons mummies to walk with him.", "eye": Color(0.6, 3.0, 2.6), "name": "The Buried King", "hp": 1250.0, "spd": 0.86, "bounty": 200, "lives": 5, "hit_h": 2.1, "dmg": 46.0, "atk_t": 1.7, "scale": 2.5, "rig": "human", "col": Color(0.86, 0.74, 0.40), "heavy": true, "weapon": true, "crown": true, "boss": true, "summon": {"type": "mummy", "n": 1, "every": 9.0, "max": 99, "hp": 0.7}},
-}
+const MONSTER_IDS := [
+	"skel", "rat", "slime", "slimelet", "knight", "bat", "ghoul", "spider",
+	"scarab", "wolf", "bomber", "wraith", "toad", "wisp", "drummer", "gargoyle",
+	"necro", "mummy", "brute", "golem", "brood",
+	"giant", "ogre", "jotun", "queen", "colossus", "king",
+]
+
+static var DEFS: Dictionary = {}
+
+
+static func _static_init() -> void:
+	for mid in MONSTER_IDS:
+		var res := load("res://assets/data/monsters/%s.tres" % mid) as CWMonsterData
+		if res != null:
+			DEFS[mid] = res.to_dict()
 
 var mons: Array[CWMonsterUnit] = []
 var terrain: CWTerrain
