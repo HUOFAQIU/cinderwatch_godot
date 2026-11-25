@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://bofprxjnnx6dv"]
+
+[ext_resource type="Texture2D" uid="uid://dgx5xp13cuv1j" path="res://assets/textures/particle_soft.png" id="1_0os1l"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_05ub2"]
+transparency = 1
+depth_draw_mode = 2
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = ExtResource("1_0os1l")
+billboard_mode = 1
+billboard_keep_scale = true
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_af6gm"]
+direction = Vector3(0, 1, 0)
+spread = 85.0
+initial_velocity_min = 3.0
+initial_velocity_max = 7.5
+scale_min = 0.08
+scale_max = 0.18
+color = Color(1.6, 0.95, 0.28, 1)
+
+[sub_resource type="QuadMesh" id="QuadMesh_v2npb"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_6wxxs"]
+emission_shape = 1
+emission_sphere_radius = 0.4
+direction = Vector3(0, 1, 0)
+spread = 55.0
+initial_velocity_min = 1.4
+initial_velocity_max = 3.2
+gravity = Vector3(0, 1.2, 0)
+scale_min = 0.35
+scale_max = 0.78
+color = Color(0.22, 0.2, 0.22, 0.72)
+
+[node name="ExplosionFX" type="Node3D" unique_id=1794178055]
+
+[node name="SparksGPU" type="GPUParticles3D" parent="." unique_id=1233730236]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+material_override = SubResource("StandardMaterial3D_05ub2")
+cast_shadow = 0
+emitting = false
+amount = 18
+lifetime = 0.55
+one_shot = true
+explosiveness = 0.92
+process_material = SubResource("ParticleProcessMaterial_af6gm")
+draw_pass_1 = SubResource("QuadMesh_v2npb")
+
+[node name="SmokeGPU" type="GPUParticles3D" parent="." unique_id=1737775621]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+material_override = SubResource("StandardMaterial3D_05ub2")
+cast_shadow = 0
+emitting = false
+amount = 10
+lifetime = 0.85
+one_shot = true
+explosiveness = 0.85
+process_material = SubResource("ParticleProcessMaterial_6wxxs")
+draw_pass_1 = SubResource("QuadMesh_v2npb")

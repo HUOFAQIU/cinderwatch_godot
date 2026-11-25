@@ -8,7 +8,7 @@ const MAX_PARTS := 2000
 const MAX_COINS := 120
 const MAX_BOLTS := 480
 const MAX_FLAMES := 192
-const MAX_DECALS := 64
+const MAX_DECALS := 24
 const MAX_RINGS := 24
 const MAX_WX := 2600
 const MIST_GAIN_ENV := 2.7
@@ -35,8 +35,11 @@ var wx_mm: MultiMesh
 var wx_mat: ShaderMaterial
 var flame_mmi: MultiMeshInstance3D
 var flame_mm: MultiMesh
-var decal_mmi: MultiMeshInstance3D
-var decal_mm: MultiMesh
+var _scorch_decals: Array[Decal] = []
+var _exp_nodes: Array[Node3D] = []
+var _exp_sparks: Array[GPUParticles3D] = []
+var _exp_smoke: Array[GPUParticles3D] = []
+var _exp_cursor: int = 0
 var ring_mmi: MultiMeshInstance3D
 var ring_mm: MultiMesh
 var beacon_embers_gpu: GPUParticles3D
@@ -93,11 +96,8 @@ var _b_col: PackedColorArray = PackedColorArray()
 var _b_life: PackedFloat32Array = PackedFloat32Array()
 var _b_max_life: PackedFloat32Array = PackedFloat32Array()
 
-var _d_cnt: int = 0
-var _d_pos: PackedVector3Array = PackedVector3Array()
-var _d_col: PackedColorArray = PackedColorArray()
-var _d_size: PackedFloat32Array = PackedFloat32Array()
 var _d_life: PackedFloat32Array = PackedFloat32Array()
+var _d_alpha: PackedFloat32Array = PackedFloat32Array()
 
 var _r_cnt: int = 0
 var _r_pos: PackedVector3Array = PackedVector3Array()
@@ -187,10 +187,16 @@ func init_fx() -> void:
 	flame_mm.instance_count = MAX_FLAMES
 	flame_mm.visible_instance_count = 0
 
-	decal_mmi = %DecalsMMI
-	decal_mm = decal_mmi.multimesh
-	decal_mm.instance_count = MAX_DECALS
-	decal_mm.visible_instance_count = 0
+	_scorch_decals.clear()
+	for ch in %ScorchPool.get_children():
+		if ch is Decal:
+			_scorch_decals.append(ch as Decal)
+	_exp_nodes.clear(); _exp_sparks.clear(); _exp_smoke.clear()
+	for ch in %ExplosionPool.get_children():
+		if ch is Node3D:
+			_exp_nodes.append(ch as Node3D)
+			_exp_sparks.append(ch.get_node("SparksGPU") as GPUParticles3D)
+			_exp_smoke.append(ch.get_node("SmokeGPU") as GPUParticles3D)
 
 	ring_mmi = %RingsMMI
 	ring_mm = ring_mmi.multimesh
@@ -210,8 +216,9 @@ func _alloc_pools() -> void:
 	_b_a.resize(MAX_BOLTS); _b_b.resize(MAX_BOLTS); _b_col.resize(MAX_BOLTS)
 	_b_life.resize(MAX_BOLTS); _b_max_life.resize(MAX_BOLTS)
 
-	_d_pos.resize(MAX_DECALS); _d_col.resize(MAX_DECALS)
-	_d_size.resize(MAX_DECALS); _d_life.resize(MAX_DECALS)
+	var dn := maxi(1, _scorch_decals.size())
+	_d_life.resize(dn); _d_alpha.resize(dn)
+	_d_life.fill(0.0); _d_alpha.fill(0.0)
 
 	_r_pos.resize(MAX_RINGS); _r_col.resize(MAX_RINGS)
 	_r_max.resize(MAX_RINGS); _r_t.resize(MAX_RINGS); _r_dur.resize(MAX_RINGS)
@@ -468,20 +475,25 @@ func spawn_sparks(pos: Vector3, count: int, speed: float, col: Color) -> void:
 
 
 func spawn_decal(pos: Vector3, size: float, col: Color, life: float = 18.0) -> void:
-	var idx := _d_cnt
-	if idx >= MAX_DECALS:
-		idx = 0
-		var min_l := _d_life[0]
-		for k in range(1, MAX_DECALS):
-			if _d_life[k] < min_l:
-				min_l = _d_life[k]
-				idx = k
-	else:
-		_d_cnt += 1
-	_d_pos[idx] = Vector3(pos.x, pos.y + 0.05, pos.z)
-	_d_size[idx] = size
-	_d_col[idx] = col
+	if _scorch_decals.is_empty():
+		return
+	var idx := 0
+	var min_l := _d_life[0]
+	for k in range(1, _scorch_decals.size()):
+		if _d_life[k] <= 0.0:
+			idx = k
+			break
+		if _d_life[k] < min_l:
+			min_l = _d_life[k]
+			idx = k
+	var dec := _scorch_decals[idx]
+	dec.position = Vector3(pos.x, pos.y, pos.z)
+	dec.size = Vector3(size, 2.2, size)
+	dec.modulate = Color(col.r, col.g, col.b, 1.0)
+	dec.albedo_mix = col.a
+	dec.visible = true
 	_d_life[idx] = life
+	_d_alpha[idx] = col.a
 
 
 func spawn_ring(pos: Vector3, r_max: float, col: Color, dur: float = 0.45) -> void:
@@ -505,18 +517,15 @@ func spawn_ring(pos: Vector3, r_max: float, col: Color, dur: float = 0.45) -> vo
 func spawn_explosion(pos: Vector3, sc: float = 1.0) -> void:
 	flash(pos + Vector3(0, 1.0, 0), Color(1.0, 0.65, 0.25), 9.0 * sc, 0.32, 18.0 * sc)
 	add_shake(0.35 * sc)
-	spawn_decal(pos, 1.4 * sc, Color(0.05, 0.04, 0.04, 0.62), 20.0)
+	spawn_decal(pos, 1.4 * sc, Color(0.05, 0.04, 0.04, 0.68), 20.0)
 	spawn_ring(pos, 2.2 * sc, Color(1.6, 0.78, 0.25, 0.85), 0.36)
-	spawn_sparks(pos + Vector3(0, 0.4, 0), int(18 * sc), 7.5 * sc, Color(1.0, 0.68, 0.22))
-	for _i in range(int(10 * sc)):
-		if _p_cnt >= MAX_PARTS:
-			break
-		_add_part(
-			pos + Vector3(randf_range(-0.4, 0.4), 0.3, randf_range(-0.4, 0.4)),
-			Vector3(randf_range(-1.5, 1.5), randf_range(1.5, 3.2), randf_range(-1.5, 1.5)),
-			Color(0.22, 0.2, 0.22, 0.75), randf_range(0.35, 0.75) * sc,
-			randf_range(0.45, 0.95), 0.95, -1.2, 0.0
-		)
+	if not _exp_nodes.is_empty():
+		var ei := _exp_cursor
+		_exp_cursor = (_exp_cursor + 1) % _exp_nodes.size()
+		_exp_nodes[ei].position = pos
+		_exp_nodes[ei].scale = Vector3(sc, sc, sc)
+		_exp_sparks[ei].restart()
+		_exp_smoke[ei].restart()
 
 
 func spawn_bolt(a: Vector3, b: Vector3, col: Color = Color(0.55, 0.85, 1.8), life: float = 0.22) -> void:
@@ -852,25 +861,16 @@ func _update_flames(t: float) -> void:
 
 
 func _update_decals_and_rings(dt: float) -> void:
-	var di := 0
-	while di < _d_cnt:
-		var life := _d_life[di] - dt
+	for di in range(_scorch_decals.size()):
+		var life := _d_life[di]
 		if life <= 0.0:
-			_d_cnt -= 1
-			if di < _d_cnt:
-				_d_pos[di] = _d_pos[_d_cnt]
-				_d_col[di] = _d_col[_d_cnt]
-				_d_size[di] = _d_size[_d_cnt]
-				_d_life[di] = _d_life[_d_cnt]
-		else:
-			_d_life[di] = life
-			var a := clampf(life / 3.0, 0.0, 1.0)
-			var c := _d_col[di]
-			var sz := _d_size[di]
-			decal_mm.set_instance_transform(di, Transform3D(Basis.IDENTITY.scaled(Vector3(sz, 1.0, sz)), _d_pos[di]))
-			decal_mm.set_instance_color(di, Color(c.r, c.g, c.b, c.a * a))
-			di += 1
-	decal_mm.visible_instance_count = _d_cnt
+			continue
+		life -= dt
+		_d_life[di] = life
+		if life <= 0.0:
+			_scorch_decals[di].visible = false
+		elif life < 3.0:
+			_scorch_decals[di].albedo_mix = _d_alpha[di] * clampf(life / 3.0, 0.0, 1.0)
 
 	var ri := 0
 	while ri < _r_cnt:
@@ -897,13 +897,14 @@ func clear_fx() -> void:
 	_p_cnt = 0
 	_c_cnt = 0
 	_b_cnt = 0
-	_d_cnt = 0
+	_d_life.fill(0.0)
+	for dec in _scorch_decals:
+		dec.visible = false
 	_r_cnt = 0
 	if part_mm != null: part_mm.visible_instance_count = 0
 	if bolt_mm != null: bolt_mm.visible_instance_count = 0
 	dynamic_flames.clear()
 	if flame_mm != null: flame_mm.visible_instance_count = 0
-	if decal_mm != null: decal_mm.visible_instance_count = 0
 	if ring_mm != null: ring_mm.visible_instance_count = 0
 	for e in emitters:
 		e["alive"] = false

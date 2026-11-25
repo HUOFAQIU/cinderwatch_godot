@@ -5,6 +5,9 @@
 [ext_resource type="Texture2D" path="res://assets/textures/particle_soft.png" id="3_kdmj4"]
 [ext_resource type="Shader" path="res://shaders/weather.gdshader" id="4_sup7a"]
 [ext_resource type="ArrayMesh" path="res://assets/models/fx/ring.res" id="5_j7sck"]
+[ext_resource type="PackedScene" path="res://scenes/fx/scorch_decal.tscn" id="6_sup7a"]
+[ext_resource type="Texture2D" path="res://assets/textures/decal_scorch.png" id="7_j7sck"]
+[ext_resource type="PackedScene" path="res://scenes/fx/explosion.tscn" id="8_8stuq"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_8stuq"]
 render_priority = 8
@@ -152,21 +155,6 @@ shader_parameter/u_col = Vector3(1, 0.58, 0.22)
 transform_format = 1
 use_custom_data = true
 mesh = SubResource("QuadMesh_8ufvo")
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_41waw"]
-transparency = 1
-cull_mode = 2
-depth_draw_mode = 2
-shading_mode = 0
-vertex_color_use_as_albedo = true
-
-[sub_resource type="QuadMesh" id="QuadMesh_45gyv"]
-orientation = 1
-
-[sub_resource type="MultiMesh" id="MultiMesh_87ec7"]
-transform_format = 1
-use_colors = true
-mesh = SubResource("QuadMesh_45gyv")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6s8j8"]
 render_priority = 6
@@ -414,14 +402,274 @@ material_override = SubResource("ShaderMaterial_iml3i")
 cast_shadow = 0
 multimesh = SubResource("MultiMesh_d5krg")
 
-[node name="DecalsMMI" type="MultiMeshInstance3D" parent="MultiMeshes" unique_id=522879697]
-unique_name_in_owner = true
-material_override = SubResource("StandardMaterial3D_41waw")
-cast_shadow = 0
-multimesh = SubResource("MultiMesh_87ec7")
-
 [node name="RingsMMI" type="MultiMeshInstance3D" parent="MultiMeshes" unique_id=2000922049]
 unique_name_in_owner = true
 material_override = SubResource("StandardMaterial3D_6s8j8")
 cast_shadow = 0
 multimesh = SubResource("MultiMesh_o8sbh")
+
+[node name="ScorchPool" type="Node3D" parent="." unique_id=1736349225]
+unique_name_in_owner = true
+
+[node name="Scorch0" type="Decal" parent="ScorchPool" unique_id=422365184 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch1" type="Decal" parent="ScorchPool" unique_id=2128048944 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch2" type="Decal" parent="ScorchPool" unique_id=142015610 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch3" type="Decal" parent="ScorchPool" unique_id=649813366 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch4" type="Decal" parent="ScorchPool" unique_id=871976891 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch5" type="Decal" parent="ScorchPool" unique_id=800666720 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch6" type="Decal" parent="ScorchPool" unique_id=296008827 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch7" type="Decal" parent="ScorchPool" unique_id=844588791 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch8" type="Decal" parent="ScorchPool" unique_id=1093827121 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch9" type="Decal" parent="ScorchPool" unique_id=413203015 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch10" type="Decal" parent="ScorchPool" unique_id=569270296 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch11" type="Decal" parent="ScorchPool" unique_id=820017767 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch12" type="Decal" parent="ScorchPool" unique_id=691409395 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch13" type="Decal" parent="ScorchPool" unique_id=1492803562 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch14" type="Decal" parent="ScorchPool" unique_id=1306953424 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch15" type="Decal" parent="ScorchPool" unique_id=220936482 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch16" type="Decal" parent="ScorchPool" unique_id=304882883 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch17" type="Decal" parent="ScorchPool" unique_id=1777577533 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch18" type="Decal" parent="ScorchPool" unique_id=1576270010 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch19" type="Decal" parent="ScorchPool" unique_id=575481244 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch20" type="Decal" parent="ScorchPool" unique_id=100077843 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch21" type="Decal" parent="ScorchPool" unique_id=1223055121 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch22" type="Decal" parent="ScorchPool" unique_id=597076770 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="Scorch23" type="Decal" parent="ScorchPool" unique_id=1670629545 instance=ExtResource("6_sup7a")]
+visible = false
+size = Vector3(1.4, 2.2, 1.4)
+texture_albedo = ExtResource("7_j7sck")
+modulate = Color(0.05, 0.04, 0.04, 1)
+albedo_mix = 0.72
+upper_fade = 0.25
+lower_fade = 0.25
+cull_mask = 1
+
+[node name="ExplosionPool" type="Node3D" parent="." unique_id=372739876]
+unique_name_in_owner = true
+
+[node name="Explosion0" type="Node3D" parent="ExplosionPool" unique_id=1794178055 instance=ExtResource("8_8stuq")]
+
+[node name="Explosion1" type="Node3D" parent="ExplosionPool" unique_id=2035350615 instance=ExtResource("8_8stuq")]
+
+[node name="Explosion2" type="Node3D" parent="ExplosionPool" unique_id=1699068804 instance=ExtResource("8_8stuq")]
+
+[node name="Explosion3" type="Node3D" parent="ExplosionPool" unique_id=822348831 instance=ExtResource("8_8stuq")]
+
+[node name="Explosion4" type="Node3D" parent="ExplosionPool" unique_id=1816240242 instance=ExtResource("8_8stuq")]
+
+[node name="Explosion5" type="Node3D" parent="ExplosionPool" unique_id=1167061356 instance=ExtResource("8_8stuq")]
+
+[node name="Explosion6" type="Node3D" parent="ExplosionPool" unique_id=210862750 instance=ExtResource("8_8stuq")]
+
+[node name="Explosion7" type="Node3D" parent="ExplosionPool" unique_id=234341582 instance=ExtResource("8_8stuq")]
+
+[node name="Explosion8" type="Node3D" parent="ExplosionPool" unique_id=191635968 instance=ExtResource("8_8stuq")]
+
+[node name="Explosion9" type="Node3D" parent="ExplosionPool" unique_id=1998643947 instance=ExtResource("8_8stuq")]
