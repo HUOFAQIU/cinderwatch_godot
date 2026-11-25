@@ -163,7 +163,6 @@ static func _build_water_and_waterfall(t: CWTerrain, rng: CWUtil.Rng) -> void:
 
 
 static func _build_bridge(t: CWTerrain) -> void:
-	# 1:1 port of buildBridge() in 32-props.js:200-225 (6.2m arched masonry bridge + 9-stone arch + spandrels + 4 corner finial piers + Frost icicles)
 	var road: Array[Vector2] = t.layout["road"]
 	var stream: Array[Vector2] = t.layout["stream"]
 	var best_d := 1e9
@@ -176,88 +175,27 @@ static func _build_bridge(t: CWTerrain) -> void:
 	if best_d > 1.6:
 		return
 	var p := road[best_i]
-	# Average road direction across the bridge span (+/-3 samples) so curved crossings align cleanly
 	var dir := (road[mini(road.size() - 1, best_i + 3)] - road[maxi(0, best_i - 3)]).normalized()
 	var yaw := atan2(dir.x, dir.y)
-	var rng := CWUtil.Rng.new(t.seed_val + 409)
-	var soup := CWGfx.Soup.new()
-
-	var y0 := 0.06
-	var bed := -0.78 - y0
-	var spring := -0.22 - y0
-	var w_half := CWLayout.ROAD_HALF + 0.22
-	var arch_a := 1.25
-	var crown := 0.18 - 0.32
-	var sd_col: Color = t.pal["stoneD"]
-	var sl_col: Color = t.pal["stoneL"]
-
-	# 8-segment 4.64m arched span fits cleanly over the river without overshooting road bends
-	for k in range(-4, 4):
-		var u := (float(k) + 0.5) * 0.58
-		var top := 0.18 * cos(clampf(u / 2.55, -1.0, 1.0) * PI * 0.5)
-		if absf(u) < 1.85:
-			soup.add_box(Vector3(w_half * 2.0 - 0.14, 0.16, 0.60), Vector3(0.0, top - 0.08, u), t.pal["road"], CWGfx.L_COBBLE, 0.86)
-		soup.add_box(Vector3(w_half * 2.0 - 0.10, 0.24, 0.59), Vector3(0.0, top - 0.24, u), sd_col, CWGfx.L_MASON, 0.90)
-		for side: float in [-1.0, 1.0]:
-			var xx := side * w_half
-			var mc := sd_col.lerp(sl_col, rng.next_f())
-			# Crenellated parapet wall + alternating coping merlons
-			soup.add_box(Vector3(0.28, 0.48, 0.59), Vector3(xx, top + 0.20, u), mc, CWGfx.L_MASON, 0.90)
-			if (k & 1) == 0:
-				soup.add_box(Vector3(0.34, 0.14, 0.28), Vector3(xx, top + 0.51, u), sd_col.lerp(sl_col, rng.next_f()), CWGfx.L_MASON, 0.88)
-			# Masonry spandrel wall down to elliptical arch or riverbed
-			var bot := (spring + (crown - spring) * sqrt(maxf(0.0, 1.0 - (u / arch_a) * (u / arch_a)))) if absf(u) < arch_a else (bed - 0.3)
-			if top - 0.05 - bot > 0.04:
-				soup.add_box(Vector3(0.28, top - 0.05 - bot, 0.59), Vector3(xx, (top - 0.05 + bot) * 0.5, u), sd_col.lerp(sl_col, rng.next_f()), CWGfx.L_MASON, 0.91)
-
-	for side: float in [-1.0, 1.0]:
-		var xx := side * w_half
-		# 9-stone elliptical arch voussoirs
-		for k in range(9):
-			var th := PI * float(k) / 8.0
-			var u := cos(th) * arch_a
-			var ay := spring + (crown - spring) * sin(th) - 0.05
-			soup.add_box(Vector3(0.36, 0.20, 0.40), Vector3(xx, ay, u), sl_col, CWGfx.L_MASON, 0.88, Vector3(th - PI * 0.5, 0.0, 0.0))
-		# 4 tall corner piers with cap slabs & pyramid finials
-		for u_end: float in [-2.45, 2.45]:
-			var t_end := 0.18 * cos(clampf(u_end / 2.55, -1.0, 1.0) * PI * 0.5)
-			soup.add_box(Vector3(0.48, 1.18, 0.48), Vector3(xx, t_end + 0.26, u_end), sd_col.lerp(sl_col, rng.next_f()), CWGfx.L_MASON, 0.90)
-			soup.add_box(Vector3(0.60, 0.13, 0.60), Vector3(xx, t_end + 0.92, u_end), sl_col, CWGfx.L_MASON, 0.86)
-			soup.add_cone(0.19, 0.24, Vector3(xx, t_end + 1.09, u_end), sd_col, 4, CWGfx.L_ROCK, 0.90)
-
-	# Frostfall icicles hanging under both arches
-	if String(t.bio.get("key", "")) == "frost":
-		for side: float in [-1.0, 1.0]:
-			var u_ic := -1.15
-			while u_ic <= 1.16:
-				var h_ic := rng.rr(0.14, 0.52)
-				var y_ic := spring + (crown - spring) * sqrt(maxf(0.0, 1.0 - (u_ic / arch_a) * (u_ic / arch_a)))
-				soup.add_cone(rng.rr(0.04, 0.07), h_ic, Vector3(side * (w_half + 0.03), y_ic - h_ic * 0.5 - 0.04, u_ic), Color(0.68, 0.88, 1.0), 5, CWGfx.L_PLAIN, 0.16, Vector3(PI, 0.0, 0.0), 0.0, 0.45)
-				u_ic += 0.21
-
+	var b_path := "res://assets/models/structures/bridge_frost.res" if String(t.bio.get("key", "")) == "frost" else "res://assets/models/structures/bridge.res"
 	var mi := MeshInstance3D.new()
-	mi.mesh = soup.build()
+	mi.mesh = load(b_path) as Mesh
 	mi.material_override = t.gfx.mat_world
 	t.bridge_pos = p
 	t.has_bridge = true
 	mi.rotation.y = yaw
-	t._attach_to_chunk(mi, Vector3(p.x, y0, p.y))
-
+	t._attach_to_chunk(mi, Vector3(p.x, 0.06, p.y))
 
 
 static func _build_pads(t: CWTerrain) -> void:
-	# Upstream 32-props.js:227-238 + 90-main.js:152-158: bright brass-inlaid octagonal pads & golden pennant markers
 	t.pad_meshes.clear()
 	var rng := CWUtil.Rng.new(t.seed_val + 777)
 	var bkey: String = String(t.bio.get("key", "ashen"))
 	var bright := (bkey == "frost" or bkey == "dunes")
-	var top_col := Color(0.353, 0.376, 0.439) if bright else Color(0.557, 0.573, 0.620)
-	var rim_col := Color(0.212, 0.227, 0.275) if bright else Color(0.337, 0.353, 0.400)
-	var brass_col := Color(0.95, 0.72, 0.24) if bright else Color(0.84, 0.63, 0.22)
-	var gold_col := Color(0.92, 0.70, 0.22)
-	var amber_col := Color(0.79, 0.41, 0.16)
+	var pad_mesh := load("res://assets/models/structures/%s.res" % ("pad_bright" if bright else "pad_dark")) as Mesh
+	var marker_mesh := load("res://assets/models/structures/pad_marker.res") as Mesh
 
-	# Build smoothed road centerline for flyers (31-terrain.js:403)
+	# Build smoothed road centerline for flyers
 	var road: Array[Vector2] = t.layout["road"]
 	t.road_smooth.clear()
 	var rn := road.size()
@@ -273,24 +211,9 @@ static func _build_pads(t: CWTerrain) -> void:
 	pad_pick_shape.height = 0.55
 
 	for pad in t.layout["pads"]:
-		var soup := CWGfx.Soup.new()
 		var py_rot := rng.rr(0.0, TAU)
-		# Octagonal rim & faintly glowing top stone
-		soup.add_cyl(1.36, 1.30, 0.30, Vector3(0, 0.12, 0), rim_col.darkened(0.18), 8, CWGfx.L_MASON, 0.90, Vector3(0, PI / 8.0, 0))
-		soup.add_cyl(1.20, 1.20, 0.06, Vector3(0, 0.28, 0), top_col, 8, CWGfx.L_MASON, 0.86, Vector3(0, PI / 8.0, 0), 0.0, 0.14)
-		# 8 perimeter curb stones
-		for k in range(8):
-			var a := float(k) / 8.0 * TAU
-			soup.add_box(Vector3(0.46, 0.20, 0.28), Vector3(cos(a) * 1.34, 0.10 + rng.rr(0.0, 0.06), sin(a) * 1.34), rim_col.lerp(top_col, rng.rr(0.0, 0.5)), CWGfx.L_ROCK, 0.90, Vector3(rng.rr(-0.1, 0.1), -a + PI * 0.5, 0), 0.0, 0.08)
-		# 8-segment brass octagonal inlay ring + brass center crosshair
-		for k in range(8):
-			var a := (float(k) + 0.5) / 8.0 * TAU
-			soup.add_box(Vector3(0.62, 0.035, 0.09), Vector3(cos(a) * 0.80, 0.325, sin(a) * 0.80), brass_col, CWGfx.L_METAL, 0.40, Vector3(0, -a + PI * 0.5, 0), 0.0, 0.36)
-		soup.add_box(Vector3(0.50, 0.035, 0.09), Vector3(0, 0.325, 0), brass_col, CWGfx.L_METAL, 0.40, Vector3.ZERO, 0.0, 0.36)
-		soup.add_box(Vector3(0.50, 0.035, 0.09), Vector3(0, 0.325, 0), brass_col, CWGfx.L_METAL, 0.40, Vector3(0, PI * 0.5, 0), 0.0, 0.36)
-
 		var mi := MeshInstance3D.new()
-		mi.mesh = soup.build()
+		mi.mesh = pad_mesh
 		mi.material_override = t.gfx.mat_world
 		mi.rotation.y = py_rot
 		var pad_body := StaticBody3D.new()
@@ -306,19 +229,12 @@ static func _build_pads(t: CWTerrain) -> void:
 		t._attach_to_chunk(mi, Vector3(pad["x"], pad["y"], pad["z"]))
 		t.pad_meshes.append(mi)
 
-		# Golden-tipped empty-pad pennant marker (hidden when a tower is built)
-		var msp := CWGfx.Soup.new()
-		msp.add_box(Vector3(0.08, 1.15, 0.08), Vector3(0, 0.57, 0), t.pal["woodD"], CWGfx.L_WOOD, 0.90, Vector3(0, 0, 0.05))
-		msp.add_cone(0.07, 0.14, Vector3(0.03, 1.20, 0), brass_col, 4, CWGfx.L_METAL, 0.45, Vector3.ZERO, 0.0, 0.25)
-		msp.add_box(Vector3(0.46, 0.34, 0.04), Vector3(0.28, 0.88, 0), gold_col.lerp(amber_col, 0.4), CWGfx.L_CLOTH, 0.85, Vector3.ZERO, 0.45, 0.22)
-		msp.add_box(Vector3(0.22, 0.18, 0.04), Vector3(0.56, 0.88, 0), gold_col, CWGfx.L_CLOTH, 0.85, Vector3.ZERO, 0.65, 0.26)
 		var mmi := MeshInstance3D.new()
-		mmi.mesh = msp.build()
+		mmi.mesh = marker_mesh
 		mmi.material_override = t.gfx.mat_world
 		t._attach_to_chunk(mmi, Vector3(pad["x"], float(pad["y"]) + 0.28, pad["z"]))
 		pad["marker"] = mmi
 		pad["marker_yaw"] = py_rot
-
 
 
 static func _keep_world(t: CWTerrain, kp: Vector2, ky: float, yaw: float, lx: float, ly: float, lz: float) -> Vector3:

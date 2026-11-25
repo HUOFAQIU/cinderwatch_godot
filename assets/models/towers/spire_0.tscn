@@ -1,0 +1,36 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_0_p0.res" id="1_g3c26"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_0_p1.res" id="2_v373t"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_0_p2.res" id="3_y2hdt"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_0_crys.res" id="4_k0sfx"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_0_scaf.res" id="5_dagrc"]
+
+[node name="spire_0" type="Node3D" unique_id=1941020099]
+metadata/flame_local = Vector3(0, 3.13, 0)
+metadata/top_y = 3.5
+
+[node name="Piece_0" type="MeshInstance3D" parent="." unique_id=1564412202]
+mesh = ExtResource("1_g3c26")
+metadata/role = "piece"
+metadata/delay = 0.0
+
+[node name="Piece_1" type="MeshInstance3D" parent="." unique_id=133583401]
+mesh = ExtResource("2_v373t")
+metadata/role = "piece"
+metadata/delay = 0.25
+
+[node name="Piece_2" type="MeshInstance3D" parent="." unique_id=1237607065]
+mesh = ExtResource("3_y2hdt")
+metadata/role = "piece"
+metadata/delay = 0.48
+
+[node name="Crystal" type="MeshInstance3D" parent="." unique_id=246251467]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.13, 0)
+mesh = ExtResource("4_k0sfx")
+metadata/role = "crystal"
+metadata/base_y = 3.13
+
+[node name="Scaffold" type="MeshInstance3D" parent="." unique_id=1512976200]
+mesh = ExtResource("5_dagrc")
+metadata/role = "scaffold"

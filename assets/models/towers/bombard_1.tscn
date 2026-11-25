@@ -1,0 +1,37 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/bombard_1_p0.res" id="1_oydyp"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/bombard_1_tur0.res" id="2_guqd7"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/bombard_1_p1.res" id="3_4cdqa"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/bombard_1_p2.res" id="4_1w8jl"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/bombard_1_scaf.res" id="5_hfjg5"]
+
+[node name="bombard_1" type="Node3D" unique_id=2079642922]
+metadata/flame_local = Vector3(-0.8424, 2.7, 0.52)
+metadata/top_y = 2.3
+
+[node name="Piece_0" type="MeshInstance3D" parent="." unique_id=1837521240]
+mesh = ExtResource("1_oydyp")
+metadata/role = "piece"
+metadata/delay = 0.0
+
+[node name="Turret" type="Node3D" parent="." unique_id=2134255838]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.77, 0)
+metadata/role = "turret"
+
+[node name="TurretMesh_0" type="MeshInstance3D" parent="Turret" unique_id=1872472284]
+mesh = ExtResource("2_guqd7")
+
+[node name="Piece_1" type="MeshInstance3D" parent="." unique_id=1743585059]
+mesh = ExtResource("3_4cdqa")
+metadata/role = "piece"
+metadata/delay = 0.28
+
+[node name="Piece_2" type="MeshInstance3D" parent="." unique_id=2129646905]
+mesh = ExtResource("4_1w8jl")
+metadata/role = "piece"
+metadata/delay = 0.5
+
+[node name="Scaffold" type="MeshInstance3D" parent="." unique_id=1919979467]
+mesh = ExtResource("5_hfjg5")
+metadata/role = "scaffold"

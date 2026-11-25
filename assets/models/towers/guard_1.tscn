@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/guard_1_p0.res" id="1_deqd0"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/guard_1_p1.res" id="2_qmppj"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/guard_1_p2.res" id="3_4ywp4"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/guard_1_scaf.res" id="4_8coau"]
+
+[node name="guard_1" type="Node3D" unique_id=2132289515]
+metadata/flame_local = Vector3(0.97, 0.52, 1.2)
+metadata/top_y = 2.2
+metadata/door_local = Vector3(0, 0, 1.18)
+
+[node name="Piece_0" type="MeshInstance3D" parent="." unique_id=991374080]
+mesh = ExtResource("1_deqd0")
+metadata/role = "piece"
+metadata/delay = 0.0
+
+[node name="Piece_1" type="MeshInstance3D" parent="." unique_id=1275841821]
+mesh = ExtResource("2_qmppj")
+metadata/role = "piece"
+metadata/delay = 0.2
+
+[node name="Piece_2" type="MeshInstance3D" parent="." unique_id=1496351720]
+mesh = ExtResource("3_4ywp4")
+metadata/role = "piece"
+metadata/delay = 0.42
+
+[node name="Scaffold" type="MeshInstance3D" parent="." unique_id=1538582271]
+mesh = ExtResource("4_8coau")
+metadata/role = "scaffold"

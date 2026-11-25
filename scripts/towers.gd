@@ -135,7 +135,7 @@ func build_tower(pad: Dictionary, kind: String, pal: Dictionary) -> Dictionary:
 	}
 	pad["tower"] = t
 	towers.append(t)
-	CWTowerMeshBuilder.rebuild_mesh(t, pal, gfx)
+	_load_tower_visuals(t)
 	audio.play_sfx("build", 0.9)
 	tower_built.emit(t)
 	return t
@@ -152,7 +152,7 @@ func upgrade_tower(t: Dictionary, pal: Dictionary) -> bool:
 	t["state"] = "build"
 	t["build_t"] = 0.0
 	t["emitter"]["energy"] = float(def["light"][int(t["lvl"])])
-	CWTowerMeshBuilder.rebuild_mesh(t, pal, gfx)
+	_load_tower_visuals(t)
 	audio.play_sfx("upgrade", 0.95)
 	tower_upgraded.emit(t)
 	return true
@@ -185,6 +185,57 @@ func _find_rally_point(tx: float, tz: float) -> Vector3:
 			best_d = d
 			best = pt
 	return Vector3(best.x, terrain.height_at(best.x, best.y), best.y)
+
+
+func _apply_world_mat(n: Node) -> void:
+	if n is MeshInstance3D:
+		(n as MeshInstance3D).material_override = gfx.mat_world
+	for c in n.get_children():
+		_apply_world_mat(c)
+
+
+func _load_tower_visuals(t: Dictionary) -> void:
+	var node: Node3D = t["visuals"]
+	for ch in node.get_children():
+		ch.queue_free()
+	t["pieces"].clear()
+	t["crystal"] = null
+	t["shards"].clear()
+	t["turret"] = null
+	t["scaffold"] = null
+
+	var path := "res://assets/models/towers/%s_%d.tscn" % [String(t["kind"]), int(t["lvl"])]
+	var ps := load(path) as PackedScene
+	if ps == null:
+		push_error("Missing tower scene: " + path)
+		return
+	var inst := ps.instantiate() as Node3D
+	_apply_world_mat(inst)
+	node.add_child(inst)
+
+	for ch in inst.get_children():
+		var role := String(ch.get_meta("role", ""))
+		if role == "piece" and ch is MeshInstance3D:
+			(ch as MeshInstance3D).visible = false
+			t["pieces"].append({"mi": ch, "delay": float(ch.get_meta("delay", 0.0)), "landed": false})
+		elif role == "scaffold" and ch is MeshInstance3D:
+			t["scaffold"] = ch
+		elif role == "turret" and ch is Node3D:
+			t["turret"] = ch
+		elif role == "crystal" and ch is MeshInstance3D:
+			t["crystal"] = ch
+			t["crystal_base_y"] = float(ch.get_meta("base_y", 3.2))
+		elif role == "shard" and ch is MeshInstance3D:
+			t["shards"].append(ch)
+
+	t["flame_local"] = inst.get_meta("flame_local", Vector3(0, 2.8, 0))
+	t["top_y"] = float(inst.get_meta("top_y", 2.8))
+	if inst.has_meta("door_local"):
+		t["door_local"] = inst.get_meta("door_local")
+
+	var fl_world: Vector3 = Vector3(t["x"], t["y"], t["z"]) + Basis(Vector3.UP, (t["node"] as Node3D).rotation.y) * Vector3(t["flame_local"])
+	t["emitter"]["pos"] = fl_world + Vector3(0, 0.35, 0)
+	t["flame_world"] = fl_world
 
 
 func update_towers(dt: float, monsters_sys: CWMonsters, dmg_mul: float) -> void:

@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_1_p0.res" id="1_w3cu7"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_1_p1.res" id="2_jpc7s"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_1_p2.res" id="3_kfpln"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_1_crys.res" id="4_53cgo"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_1_sh0.res" id="5_df301"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_1_sh1.res" id="6_lb6q1"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/spire_1_scaf.res" id="7_qlq7d"]
+
+[node name="spire_1" type="Node3D" unique_id=1271872034]
+metadata/flame_local = Vector3(0, 3.83, 0)
+metadata/top_y = 4.2
+
+[node name="Piece_0" type="MeshInstance3D" parent="." unique_id=723763278]
+mesh = ExtResource("1_w3cu7")
+metadata/role = "piece"
+metadata/delay = 0.0
+
+[node name="Piece_1" type="MeshInstance3D" parent="." unique_id=1429138393]
+mesh = ExtResource("2_jpc7s")
+metadata/role = "piece"
+metadata/delay = 0.25
+
+[node name="Piece_2" type="MeshInstance3D" parent="." unique_id=473441583]
+mesh = ExtResource("3_kfpln")
+metadata/role = "piece"
+metadata/delay = 0.48
+
+[node name="Crystal" type="MeshInstance3D" parent="." unique_id=1331385954]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.83, 0)
+mesh = ExtResource("4_53cgo")
+metadata/role = "crystal"
+metadata/base_y = 3.83
+
+[node name="Shard_0" type="MeshInstance3D" parent="Crystal" unique_id=1462057961]
+mesh = ExtResource("5_df301")
+metadata/role = "shard"
+
+[node name="Shard_1" type="MeshInstance3D" parent="Crystal" unique_id=1822147719]
+mesh = ExtResource("6_lb6q1")
+metadata/role = "shard"
+
+[node name="Scaffold" type="MeshInstance3D" parent="." unique_id=536471540]
+mesh = ExtResource("7_qlq7d")
+metadata/role = "scaffold"

@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/archer_1_p0.res" id="1_gogtw"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/archer_1_p1.res" id="2_e1nnq"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/archer_1_p2.res" id="3_aj4un"]
+[ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/archer_1_scaf.res" id="4_2d43x"]
+
+[node name="archer_1" type="Node3D" unique_id=1018164561]
+metadata/flame_local = Vector3(-0.51, 3.302, -0.51)
+metadata/top_y = 3.45
+
+[node name="Piece_0" type="MeshInstance3D" parent="." unique_id=1725936597]
+mesh = ExtResource("1_gogtw")
+metadata/role = "piece"
+metadata/delay = 0.0
+
+[node name="Piece_1" type="MeshInstance3D" parent="." unique_id=1108919677]
+mesh = ExtResource("2_e1nnq")
+metadata/role = "piece"
+metadata/delay = 0.22
+
+[node name="Piece_2" type="MeshInstance3D" parent="." unique_id=972008814]
+mesh = ExtResource("3_aj4un")
+metadata/role = "piece"
+metadata/delay = 0.48
+
+[node name="Scaffold" type="MeshInstance3D" parent="." unique_id=1178509561]
+mesh = ExtResource("4_2d43x")
+metadata/role = "scaffold"
