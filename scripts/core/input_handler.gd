@@ -34,7 +34,7 @@ static func handle_input(m: CWMain, event: InputEvent) -> void:
 				var dp := mpos - m._drag_last
 				m.cam_pan(dp.x, dp.y)
 		m._drag_last = mpos
-		m.ui.hovered_pad = null if m._drag_panning else pick_pad(m, mpos)
+		m.ui.hovered_pad = null if (m._drag_panning or m.ui.is_point_on_hud(mpos)) else pick_pad(m, mpos)
 	elif event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:

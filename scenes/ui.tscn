@@ -1,18 +1,1004 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/ui.gd" id="1_ui"]
+[ext_resource type="Script" path="res://scripts/ui.gd" id="1_cof4p"]
+[ext_resource type="Theme" path="res://assets/themes/pixel_theme.tres" id="2_f7tlh"]
+[ext_resource type="Texture2D" path="res://assets/icons/flame.png" id="3_8k7j3"]
+[ext_resource type="Texture2D" path="res://assets/icons/coin.png" id="4_jkdwc"]
+[ext_resource type="Texture2D" path="res://assets/icons/skull.png" id="5_rlppe"]
+[ext_resource type="Texture2D" path="res://assets/icons/banner.png" id="6_ycmcx"]
+[ext_resource type="Texture2D" path="res://assets/icons/helm.png" id="7_kupmu"]
+[ext_resource type="Texture2D" path="res://assets/icons/pause.png" id="8_catpy"]
+[ext_resource type="Texture2D" path="res://assets/icons/sound.png" id="9_41akx"]
+[ext_resource type="Texture2D" path="res://assets/icons/archer.png" id="10_sesyt"]
+[ext_resource type="Texture2D" path="res://assets/icons/bombard.png" id="11_gglip"]
+[ext_resource type="Texture2D" path="res://assets/icons/spire.png" id="12_0tsab"]
+[ext_resource type="Texture2D" path="res://assets/icons/guard.png" id="13_i5tog"]
+[ext_resource type="Texture2D" path="res://assets/icons/star.png" id="14_rleeb"]
+[ext_resource type="Texture2D" path="res://assets/icons/upgrade.png" id="15_wu1et"]
+[ext_resource type="Texture2D" path="res://assets/icons/sell.png" id="16_wquew"]
 
-[node name="UI" type="CanvasLayer"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pawqx"]
+content_margin_left = 5.0
+content_margin_top = 3.0
+content_margin_right = 5.0
+content_margin_bottom = 3.0
+bg_color = Color(0.0353, 0.0431, 0.0667, 0.86)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.9098, 0.6902, 0.2902, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3vrs6"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+bg_color = Color(0.0353, 0.0431, 0.0667, 0.86)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.9098, 0.6902, 0.2902, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ukrhx"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+bg_color = Color(0.0353, 0.0431, 0.0667, 0.86)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3647, 0.298, 0.2078, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5ls34"]
+content_margin_left = 5.0
+content_margin_top = 3.0
+content_margin_right = 5.0
+content_margin_bottom = 3.0
+bg_color = Color(0.0353, 0.0431, 0.0667, 0.86)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.9098, 0.6902, 0.2902, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fsl8s"]
+content_margin_left = 6.0
+content_margin_top = 5.0
+content_margin_right = 6.0
+content_margin_bottom = 5.0
+bg_color = Color(0.0353, 0.0431, 0.0667, 0.86)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3647, 0.298, 0.2078, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x4rqp"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.0627, 0.0706, 0.1059, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3647, 0.298, 0.2078, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6bb67"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.0627, 0.0706, 0.1059, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3647, 0.298, 0.2078, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mgb8n"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.0627, 0.0706, 0.1059, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3647, 0.298, 0.2078, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y6fpy"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.0627, 0.0706, 0.1059, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3647, 0.298, 0.2078, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_phcun"]
+content_margin_left = 6.0
+content_margin_top = 5.0
+content_margin_right = 6.0
+content_margin_bottom = 5.0
+bg_color = Color(0.0353, 0.0431, 0.0667, 0.86)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3647, 0.298, 0.2078, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+corner_detail = 1
+anti_aliasing = false
+
+[node name="UI" type="CanvasLayer" unique_id=2100613321]
 layer = 10
-script = ExtResource("1_ui")
+script = ExtResource("1_cof4p")
 
-[node name="HudCanvas" type="Control" parent="."]
+[node name="WorldOverlay" type="Control" parent="." unique_id=656788449]
 unique_name_in_owner = true
+texture_filter = 1
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 mouse_filter = 2
+
+[node name="HudRoot" type="Control" parent="." unique_id=852390114]
+unique_name_in_owner = true
 texture_filter = 1
+layout_mode = 3
+anchors_preset = 0
+offset_right = 426.0
+offset_bottom = 240.0
+mouse_filter = 2
+theme = ExtResource("2_f7tlh")
+
+[node name="StatsPlate" type="PanelContainer" parent="HudRoot" unique_id=983381210]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 5.0
+offset_bottom = 5.0
+
+[node name="Row" type="HBoxContainer" parent="HudRoot/StatsPlate" unique_id=90675173]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="LivesBox" type="HBoxContainer" parent="HudRoot/StatsPlate/Row" unique_id=2125569697]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="FlameIcon" type="TextureRect" parent="HudRoot/StatsPlate/Row/LivesBox" unique_id=525270413]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("3_8k7j3")
+stretch_mode = 3
+
+[node name="LivesLabel" type="Label" parent="HudRoot/StatsPlate/Row/LivesBox" unique_id=1150169995]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9373, 0.8941, 0.8039, 1)
+text = "20"
+vertical_alignment = 1
+
+[node name="GoldBox" type="HBoxContainer" parent="HudRoot/StatsPlate/Row" unique_id=137816953]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="CoinIcon" type="TextureRect" parent="HudRoot/StatsPlate/Row/GoldBox" unique_id=1612318538]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_jkdwc")
+stretch_mode = 3
+
+[node name="GoldLabel" type="Label" parent="HudRoot/StatsPlate/Row/GoldBox" unique_id=2006323869]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9373, 0.8941, 0.8039, 1)
+text = "240"
+vertical_alignment = 1
+
+[node name="SlainBox" type="HBoxContainer" parent="HudRoot/StatsPlate/Row" unique_id=817538274]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="SkullIcon" type="TextureRect" parent="HudRoot/StatsPlate/Row/SlainBox" unique_id=876817505]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("5_rlppe")
+stretch_mode = 3
+
+[node name="SlainLabel" type="Label" parent="HudRoot/StatsPlate/Row/SlainBox" unique_id=1377241522]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9373, 0.8941, 0.8039, 1)
+text = "0"
+vertical_alignment = 1
+
+[node name="PerfPlate" type="PanelContainer" parent="HudRoot" unique_id=771304975]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 5.0
+offset_top = 28.0
+offset_right = 5.0
+offset_bottom = 28.0
+mouse_filter = 2
+
+[node name="Rows" type="VBoxContainer" parent="HudRoot/PerfPlate" unique_id=1100900735]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+
+[node name="PerfLine1" type="Label" parent="HudRoot/PerfPlate/Rows" unique_id=1278317577]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+text = "FPS 60"
+vertical_alignment = 1
+
+[node name="PerfLine2" type="Label" parent="HudRoot/PerfPlate/Rows" unique_id=482322818]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9373, 0.8941, 0.8039, 1)
+text = "CPU 0.0ms"
+vertical_alignment = 1
+
+[node name="WavePlate" type="PanelContainer" parent="HudRoot" unique_id=1485052176]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 160.0
+offset_top = 5.0
+offset_right = 160.0
+offset_bottom = 5.0
+
+[node name="Rows" type="VBoxContainer" parent="HudRoot/WavePlate" unique_id=1338640483]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+
+[node name="Head" type="HBoxContainer" parent="HudRoot/WavePlate/Rows" unique_id=1782595388]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+alignment = 1
+
+[node name="BannerIcon" type="TextureRect" parent="HudRoot/WavePlate/Rows/Head" unique_id=1043314259]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("6_ycmcx")
+stretch_mode = 3
+
+[node name="WaveTitle" type="Label" parent="HudRoot/WavePlate/Rows/Head" unique_id=1149194744]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+text = "Wave 1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WaveSub" type="Label" parent="HudRoot/WavePlate/Rows" unique_id=1466606742]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "Next wave in 5"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WaveProgress" type="ProgressBar" parent="HudRoot/WavePlate/Rows" unique_id=435000225]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+max_value = 1.0
+show_percentage = false
+
+[node name="CmdPlate" type="PanelContainer" parent="HudRoot" unique_id=427052986]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 300.0
+offset_top = 5.0
+offset_right = 300.0
+offset_bottom = 5.0
+mouse_default_cursor_shape = 2
+
+[node name="Rows" type="VBoxContainer" parent="HudRoot/CmdPlate" unique_id=426506469]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+
+[node name="Head" type="HBoxContainer" parent="HudRoot/CmdPlate/Rows" unique_id=940914166]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="CmdIcon" type="TextureRect" parent="HudRoot/CmdPlate/Rows/Head" unique_id=1469748817]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("7_kupmu")
+stretch_mode = 3
+
+[node name="CmdTitle" type="Label" parent="HudRoot/CmdPlate/Rows/Head" unique_id=1937354665]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9373, 0.8941, 0.8039, 1)
+text = "AI commander"
+vertical_alignment = 1
+
+[node name="CmdSub" type="Label" parent="HudRoot/CmdPlate/Rows" unique_id=411241004]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "Click a pad to take over"
+vertical_alignment = 1
+
+[node name="BottomBar" type="MarginContainer" parent="HudRoot" unique_id=191545686]
+layout_mode = 0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="Row" type="HBoxContainer" parent="HudRoot/BottomBar" unique_id=1558743291]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="BottomLeft" type="HBoxContainer" parent="HudRoot/BottomBar/Row" unique_id=2106008267]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="PauseBtn" type="Button" parent="HudRoot/BottomBar/Row/BottomLeft" unique_id=1139132150]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+icon = ExtResource("8_catpy")
+icon_alignment = 1
+
+[node name="SpeedBtn" type="Button" parent="HudRoot/BottomBar/Row/BottomLeft" unique_id=925125680]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "1x"
+
+[node name="SoundBtn" type="Button" parent="HudRoot/BottomBar/Row/BottomLeft" unique_id=1993662970]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+icon = ExtResource("9_41akx")
+icon_alignment = 1
+
+[node name="BiomeBtn" type="Button" parent="HudRoot/BottomBar/Row/BottomLeft" unique_id=1327725902]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "Ashen Pass"
+
+[node name="Spacer" type="Control" parent="HudRoot/BottomBar/Row" unique_id=1551042968]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="BottomRight" type="HBoxContainer" parent="HudRoot/BottomBar/Row" unique_id=1382651263]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="FollowBtn" type="Button" parent="HudRoot/BottomBar/Row/BottomRight" unique_id=1193352986]
+unique_name_in_owner = true
+visible = false
+texture_filter = 1
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "Follow the fight"
+
+[node name="ZoomOutBtn" type="Button" parent="HudRoot/BottomBar/Row/BottomRight" unique_id=1239662109]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "-"
+
+[node name="ZoomInBtn" type="Button" parent="HudRoot/BottomBar/Row/BottomRight" unique_id=1232618938]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "+"
+
+[node name="BiomePicker" type="HBoxContainer" parent="HudRoot" unique_id=1964157777]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="BioBtn_0" type="Button" parent="HudRoot/BiomePicker" unique_id=1454705194]
+texture_filter = 1
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "Ashen Pass"
+
+[node name="BioBtn_1" type="Button" parent="HudRoot/BiomePicker" unique_id=1167774652]
+texture_filter = 1
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "Frostpeak"
+
+[node name="BioBtn_2" type="Button" parent="HudRoot/BiomePicker" unique_id=176868395]
+texture_filter = 1
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "Sunken Fen"
+
+[node name="BioBtn_3" type="Button" parent="HudRoot/BiomePicker" unique_id=289966227]
+texture_filter = 1
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "Ember Caldera"
+
+[node name="BioBtn_4" type="Button" parent="HudRoot/BiomePicker" unique_id=950997874]
+texture_filter = 1
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "Sunbaked Dunes"
+
+[node name="TooltipPlate" type="PanelContainer" parent="HudRoot" unique_id=1211433430]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pawqx")
+
+[node name="TooltipLabel" type="Label" parent="HudRoot/TooltipPlate" unique_id=1171207855]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9373, 0.8941, 0.8039, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PausedPlate" type="PanelContainer" parent="HudRoot" unique_id=1865591649]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_3vrs6")
+
+[node name="PausedLabel" type="Label" parent="HudRoot/PausedPlate" unique_id=2093292805]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+text = "Paused"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HintPlate" type="PanelContainer" parent="HudRoot" unique_id=453936155]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+mouse_filter = 2
+
+[node name="HintLabel" type="Label" parent="HudRoot/HintPlate" unique_id=1904407624]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "Click a pad to build · 1-4 pick a tower · Space calls the next wave · Wheel zooms, drag moves the view"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BannerPlate" type="PanelContainer" parent="HudRoot" unique_id=1396921155]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+mouse_filter = 2
+
+[node name="BannerLabel" type="Label" parent="HudRoot/BannerPlate" unique_id=505216977]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.9373, 0.8941, 0.8039, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TipPlate" type="PanelContainer" parent="HudRoot" unique_id=403201604]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+mouse_filter = 2
+
+[node name="Rows" type="VBoxContainer" parent="HudRoot/TipPlate" unique_id=913416727]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+
+[node name="TipHead" type="Label" parent="HudRoot/TipPlate/Rows" unique_id=342719935]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TipBody" type="Label" parent="HudRoot/TipPlate/Rows" unique_id=1640305806]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9373, 0.8941, 0.8039, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TitlePlate" type="PanelContainer" parent="HudRoot" unique_id=507583209]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ukrhx")
+
+[node name="Rows" type="VBoxContainer" parent="HudRoot/TitlePlate" unique_id=1303364208]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="TitleMain" type="Label" parent="HudRoot/TitlePlate/Rows" unique_id=4793675]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 0.851, 0.6588, 1)
+text = "Cinderwatch"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TitleSub" type="Label" parent="HudRoot/TitlePlate/Rows" unique_id=193932351]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "Ashen Pass · The commander plays until you take over."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TitleBest" type="Label" parent="HudRoot/TitlePlate/Rows" unique_id=1055054601]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ArmedPlate" type="PanelContainer" parent="HudRoot" unique_id=972346307]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_5ls34")
+
+[node name="ArmedLabel" type="Label" parent="HudRoot/ArmedPlate" unique_id=1455049532]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9373, 0.8941, 0.8039, 1)
+vertical_alignment = 1
+
+[node name="BuildMenu" type="PanelContainer" parent="HudRoot" unique_id=1984290143]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_fsl8s")
+
+[node name="Rows" type="VBoxContainer" parent="HudRoot/BuildMenu" unique_id=27886065]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="BuildHeader" type="Label" parent="HudRoot/BuildMenu/Rows" unique_id=1950945141]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+text = "Build here"
+vertical_alignment = 1
+
+[node name="BuildRow" type="HBoxContainer" parent="HudRoot/BuildMenu/Rows" unique_id=1271378674]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="BuildBtn_0" type="PanelContainer" parent="HudRoot/BuildMenu/Rows/BuildRow" unique_id=987146075]
+custom_minimum_size = Vector2(31, 35)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_x4rqp")
+
+[node name="Content" type="VBoxContainer" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_0" unique_id=2086908164]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="HotkeyLabel" type="Label" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_0/Content" unique_id=1099399272]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "1"
+vertical_alignment = 1
+
+[node name="TowerIcon" type="TextureRect" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_0/Content" unique_id=1372835968]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("10_sesyt")
+stretch_mode = 3
+
+[node name="CostRow" type="HBoxContainer" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_0/Content" unique_id=1819647209]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="CostIcon" type="TextureRect" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_0/Content/CostRow" unique_id=625543147]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_jkdwc")
+stretch_mode = 3
+
+[node name="CostLabel" type="Label" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_0/Content/CostRow" unique_id=283827309]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+text = "70"
+vertical_alignment = 1
+
+[node name="BuildBtn_1" type="PanelContainer" parent="HudRoot/BuildMenu/Rows/BuildRow" unique_id=1369430632]
+custom_minimum_size = Vector2(31, 35)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_6bb67")
+
+[node name="Content" type="VBoxContainer" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_1" unique_id=1524097651]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="HotkeyLabel" type="Label" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_1/Content" unique_id=28759810]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "2"
+vertical_alignment = 1
+
+[node name="TowerIcon" type="TextureRect" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_1/Content" unique_id=1103166134]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("11_gglip")
+stretch_mode = 3
+
+[node name="CostRow" type="HBoxContainer" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_1/Content" unique_id=1856355999]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="CostIcon" type="TextureRect" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_1/Content/CostRow" unique_id=975491793]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_jkdwc")
+stretch_mode = 3
+
+[node name="CostLabel" type="Label" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_1/Content/CostRow" unique_id=1533074871]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+text = "110"
+vertical_alignment = 1
+
+[node name="BuildBtn_2" type="PanelContainer" parent="HudRoot/BuildMenu/Rows/BuildRow" unique_id=484603681]
+custom_minimum_size = Vector2(31, 35)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_mgb8n")
+
+[node name="Content" type="VBoxContainer" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_2" unique_id=1639994279]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="HotkeyLabel" type="Label" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_2/Content" unique_id=1338132151]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "3"
+vertical_alignment = 1
+
+[node name="TowerIcon" type="TextureRect" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_2/Content" unique_id=82494090]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("12_0tsab")
+stretch_mode = 3
+
+[node name="CostRow" type="HBoxContainer" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_2/Content" unique_id=1754335246]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="CostIcon" type="TextureRect" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_2/Content/CostRow" unique_id=1727408783]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_jkdwc")
+stretch_mode = 3
+
+[node name="CostLabel" type="Label" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_2/Content/CostRow" unique_id=1622483112]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+text = "120"
+vertical_alignment = 1
+
+[node name="BuildBtn_3" type="PanelContainer" parent="HudRoot/BuildMenu/Rows/BuildRow" unique_id=811505082]
+custom_minimum_size = Vector2(31, 35)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_y6fpy")
+
+[node name="Content" type="VBoxContainer" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_3" unique_id=194769736]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="HotkeyLabel" type="Label" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_3/Content" unique_id=1765095882]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "4"
+vertical_alignment = 1
+
+[node name="TowerIcon" type="TextureRect" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_3/Content" unique_id=624123245]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("13_i5tog")
+stretch_mode = 3
+
+[node name="CostRow" type="HBoxContainer" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_3/Content" unique_id=1700033711]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="CostIcon" type="TextureRect" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_3/Content/CostRow" unique_id=655780832]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_jkdwc")
+stretch_mode = 3
+
+[node name="CostLabel" type="Label" parent="HudRoot/BuildMenu/Rows/BuildRow/BuildBtn_3/Content/CostRow" unique_id=2020053864]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+text = "85"
+vertical_alignment = 1
+
+[node name="BuildDescBox" type="VBoxContainer" parent="HudRoot/BuildMenu/Rows" unique_id=2040631760]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+
+[node name="BuildDescTitle" type="Label" parent="HudRoot/BuildMenu/Rows/BuildDescBox" unique_id=1572148706]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "Choose a tower"
+vertical_alignment = 1
+
+[node name="BuildDescLine1" type="Label" parent="HudRoot/BuildMenu/Rows/BuildDescBox" unique_id=780965691]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "Hover or press 1 to 4"
+vertical_alignment = 1
+
+[node name="BuildDescLine2" type="Label" parent="HudRoot/BuildMenu/Rows/BuildDescBox" unique_id=1010573008]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "to see what each does."
+vertical_alignment = 1
+
+[node name="UpgradeMenu" type="PanelContainer" parent="HudRoot" unique_id=1688978277]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_phcun")
+
+[node name="Rows" type="VBoxContainer" parent="HudRoot/UpgradeMenu" unique_id=1740095975]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="Header" type="HBoxContainer" parent="HudRoot/UpgradeMenu/Rows" unique_id=1656749674]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="UpgradeName" type="Label" parent="HudRoot/UpgradeMenu/Rows/Header" unique_id=2011191427]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+text = "Watchtower"
+vertical_alignment = 1
+
+[node name="Stars" type="HBoxContainer" parent="HudRoot/UpgradeMenu/Rows/Header" unique_id=1026512317]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+
+[node name="Star0" type="TextureRect" parent="HudRoot/UpgradeMenu/Rows/Header/Stars" unique_id=806366600]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("14_rleeb")
+stretch_mode = 3
+
+[node name="Star1" type="TextureRect" parent="HudRoot/UpgradeMenu/Rows/Header/Stars" unique_id=2056397011]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("14_rleeb")
+stretch_mode = 3
+
+[node name="Star2" type="TextureRect" parent="HudRoot/UpgradeMenu/Rows/Header/Stars" unique_id=1013803407]
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("14_rleeb")
+stretch_mode = 3
+
+[node name="UpgradeStats" type="Label" parent="HudRoot/UpgradeMenu/Rows" unique_id=1842199545]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6549, 0.6196, 0.5412, 1)
+text = "Range 5.5 · Damage 16"
+vertical_alignment = 1
+
+[node name="UpgradeNext" type="Label" parent="HudRoot/UpgradeMenu/Rows" unique_id=875143780]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098, 0.6902, 0.2902, 1)
+text = "Next: range 6.5 · damage 24"
+vertical_alignment = 1
+
+[node name="Actions" type="HBoxContainer" parent="HudRoot/UpgradeMenu/Rows" unique_id=41213122]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="UpgradeBtn" type="Button" parent="HudRoot/UpgradeMenu/Rows/Actions" unique_id=598885494]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(0, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "Upgrade 90"
+icon = ExtResource("15_wu1et")
+
+[node name="SellBtn" type="Button" parent="HudRoot/UpgradeMenu/Rows/Actions" unique_id=135171049]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(0, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "Sell +49"
+icon = ExtResource("16_wquew")
