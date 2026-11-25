@@ -1,5 +1,8 @@
 class_name CWGame
-extends RefCounted
+extends Node
+
+signal banner_requested(text: String, dur: float, is_boss: bool)
+signal coin_dropped(world_pos: Vector3, amount: int, is_boss: bool)
 
 # Wave director, economy, battlefield crumble/rise transitions, and self-playing AI Commander
 # Ported from 62-game.js
@@ -62,12 +65,7 @@ var fx: CWFx
 var rig: CWRig
 var audio: CWAudio
 var env: Environment
-var on_banner_cb: Callable
-var on_coin_cb: Callable
-
-
-func init_game(p_terrain: CWTerrain, p_towers: CWTowers, p_monsters: CWMonsters, p_fx: CWFx, p_rig: CWRig, p_audio: CWAudio, p_env: Environment, p_banner: Callable, p_coin: Callable = Callable()) -> void:
-	on_coin_cb = p_coin
+func init_game(p_terrain: CWTerrain, p_towers: CWTowers, p_monsters: CWMonsters, p_fx: CWFx, p_rig: CWRig, p_audio: CWAudio, p_env: Environment) -> void:
 	terrain = p_terrain
 	towers_sys = p_towers
 	monsters_sys = p_monsters
@@ -75,7 +73,6 @@ func init_game(p_terrain: CWTerrain, p_towers: CWTowers, p_monsters: CWMonsters,
 	rig = p_rig
 	audio = p_audio
 	env = p_env
-	on_banner_cb = p_banner
 	_load_best_wave()
 	biome_start = randi() % CWBiome.BIOMES.size()
 	seed_val = randi_range(1, 99999)
@@ -202,19 +199,18 @@ func on_boss_dying() -> void:
 	slowmo = 1.4
 
 
-func on_monster_killed(m: Dictionary) -> void:
+func on_monster_killed(m: CWMonsterUnit) -> void:
 	slain += 1
-	var bty := int(m["def"]["bounty"])
+	var bty := int(m.def["bounty"])
 	gold += bty
-	if on_coin_cb.is_valid():
-		on_coin_cb.call(Vector3(m["x"], float(m["y"]) + 0.8, m["z"]), bty, bool(m["def"].get("boss", false)))
-	if bool(m["def"].get("boss", false)):
+	coin_dropped.emit(Vector3(m.x, m.y + 0.8, m.z), bty, bool(m.def.get("boss", false)))
+	if bool(m.def.get("boss", false)):
 		audio.play_sfx("coin", 1.0)
 		fx.add_shake(0.55)
 
 
-func on_monster_leaked(m: Dictionary) -> void:
-	lives = maxi(0, lives - int(m["def"]["lives"]))
+func on_monster_leaked(m: CWMonsterUnit) -> void:
+	lives = maxi(0, lives - int(m.def["lives"]))
 	fx.beacon_level = float(lives) / float(max_lives)
 	if lives <= 0 and phase != "defeat":
 		phase = "defeat"
@@ -445,5 +441,4 @@ func _ai_think(dt: float) -> void:
 
 
 func _banner(text: String, dur: float, is_boss: bool) -> void:
-	if on_banner_cb.is_valid():
-		on_banner_cb.call(text, dur, is_boss)
+	banner_requested.emit(text, dur, is_boss)

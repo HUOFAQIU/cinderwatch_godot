@@ -727,12 +727,12 @@ func _draw_hud() -> void:
 	var col_mid := Color(0.878, 0.463, 0.173, 1.0)
 	var col_lo := Color(0.878, 0.290, 0.196, 1.0)
 
-	for m in game.monsters_sys.mons:
-		if bool(m["dead"]) or float(m.get("dying", 0.0)) > 0.0:
+	for m: CWMonsterUnit in game.monsters_sys.mons:
+		if m.dead or m.dying > 0.0:
 			continue
-		var is_boss := bool(m["def"].get("boss", false))
-		var f := clampf(float(m["hp"]) / maxf(float(m["max_hp"]), 1.0), 0.0, 1.0)
-		var wpos := Vector3(m["x"], float(m["y"]) + float(m["def"]["hit_h"]) * 1.65 + (0.65 if is_boss else 0.35), m["z"])
+		var is_boss := bool(m.def.get("boss", false))
+		var f := clampf(m.hp / maxf(m.max_hp, 1.0), 0.0, 1.0)
+		var wpos := Vector3(m.x, m.y + float(m.def["hit_h"]) * 1.65 + (0.65 if is_boss else 0.35), m.z)
 		var sp := _proj_world(wpos)
 		var bw := (34.0 if is_boss else 9.0) * pix
 		var bh := (2.0 if is_boss else 1.0) * pix
@@ -745,15 +745,15 @@ func _draw_hud() -> void:
 		hud_canvas.draw_rect(Rect2(bx - pix, by - pix, bw + 2.0 * pix, bh + 2.0 * pix), Color(COL_DARK.r, COL_DARK.g, COL_DARK.b, alpha))
 		hud_canvas.draw_rect(Rect2(bx, by, maxf(pix, roundf(bw * f)), bh), Color(fill_c.r, fill_c.g, fill_c.b, alpha))
 		if is_boss:
-			_draw_px_text(String(m["def"]["name"]), sp.x, by - lh - 2.0 * pix, COL_TX, s, "c", 1.0, COL_DARK)
+			_draw_px_text(String(m.def["name"]), sp.x, by - lh - 2.0 * pix, COL_TX, s, "c", 1.0, COL_DARK)
 
-	for fm in game.towers_sys.footmen:
-		var fhp := float(fm["hp"])
-		var fmhp := maxf(float(fm["max_hp"]), 1.0)
+	for fm: CWFootmanUnit in game.towers_sys.footmen:
+		var fhp := fm.hp
+		var fmhp := maxf(fm.max_hp, 1.0)
 		if fhp >= fmhp * 0.999:
 			continue
 		var f := clampf(fhp / fmhp, 0.0, 1.0)
-		var sp := _proj_world(Vector3(fm["x"], float(fm["y"]) + 1.38, fm["z"]))
+		var sp := _proj_world(Vector3(fm.x, fm.y + 1.38, fm.z))
 		var bw := 8.0 * pix
 		var bh := 1.0 * pix
 		var bx := roundf(sp.x - bw * 0.5)

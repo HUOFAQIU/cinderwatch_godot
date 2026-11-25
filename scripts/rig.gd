@@ -11,9 +11,11 @@ class PartBatch:
 	var mm: MultiMesh
 	var cap: int
 	var count: int = 0
+	var buf: PackedFloat32Array = PackedFloat32Array()
 
 	func _init(parent: Node3D, mesh: Mesh, mat: Material, p_cap: int) -> void:
 		cap = p_cap
+		buf.resize(cap * 20)
 		mm = MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_colors = true
@@ -33,12 +35,19 @@ class PartBatch:
 	func put(xf: Transform3D, col: Color, flash: float = 0.0) -> void:
 		if count >= cap:
 			return
-		mm.set_instance_transform(count, xf)
-		mm.set_instance_color(count, col)
-		mm.set_instance_custom_data(count, Color(flash, 0.0, 0.0, 0.0))
+		var off := count * 20
+		var b := xf.basis
+		var o := xf.origin
+		buf[off] = b.x.x; buf[off + 1] = b.y.x; buf[off + 2] = b.z.x; buf[off + 3] = o.x
+		buf[off + 4] = b.x.y; buf[off + 5] = b.y.y; buf[off + 6] = b.z.y; buf[off + 7] = o.y
+		buf[off + 8] = b.x.z; buf[off + 9] = b.y.z; buf[off + 10] = b.z.z; buf[off + 11] = o.z
+		buf[off + 12] = col.r; buf[off + 13] = col.g; buf[off + 14] = col.b; buf[off + 15] = col.a
+		buf[off + 16] = flash; buf[off + 17] = 0.0; buf[off + 18] = 0.0; buf[off + 19] = 0.0
 		count += 1
 
 	func end() -> void:
+		if count > 0:
+			mm.buffer = buf
 		mm.visible_instance_count = count
 
 
@@ -51,15 +60,16 @@ var capturing: bool = false
 var glow_mmi: MultiMeshInstance3D
 var glow_mm: MultiMesh
 var glow_count: int = 0
-const MAX_GLOW := 512
+var glow_buf: PackedFloat32Array = PackedFloat32Array()
+const MAX_GLOW := 1600
 
 
 func init_kits(p_gfx: CWGfx) -> void:
 	gfx = p_gfx
-	batches["box"] = PartBatch.new(self, _make_box_mesh(), gfx.mat_inst, 3200)
-	batches["cyl"] = PartBatch.new(self, _make_cyl_mesh(6), gfx.mat_inst, 1600)
-	batches["cone"] = PartBatch.new(self, _make_cone_mesh(6), gfx.mat_inst, 900)
-	batches["sphere"] = PartBatch.new(self, _make_sphere_mesh(), gfx.mat_inst, 1100)
+	batches["box"] = PartBatch.new(self, _make_box_mesh(), gfx.mat_inst, 9600)
+	batches["cyl"] = PartBatch.new(self, _make_cyl_mesh(6), gfx.mat_inst, 3600)
+	batches["cone"] = PartBatch.new(self, _make_cone_mesh(6), gfx.mat_inst, 2400)
+	batches["sphere"] = PartBatch.new(self, _make_sphere_mesh(), gfx.mat_inst, 3200)
 
 	# P0-4: Additive billboard MultiMesh for glowing monster eyes & 9x halos
 	var g_mat := StandardMaterial3D.new()
@@ -85,6 +95,7 @@ func init_kits(p_gfx: CWGfx) -> void:
 	glow_mm.transform_format = MultiMesh.TRANSFORM_3D
 	glow_mm.use_colors = true
 	glow_mm.mesh = gq
+	glow_buf.resize(MAX_GLOW * 16)
 	glow_mm.instance_count = MAX_GLOW
 	glow_mm.visible_instance_count = 0
 	glow_mmi = MultiMeshInstance3D.new()
@@ -128,14 +139,19 @@ func end_frame() -> void:
 	for b in batches.values():
 		b.end()
 	if glow_mm != null:
+		if glow_count > 0:
+			glow_mm.buffer = glow_buf
 		glow_mm.visible_instance_count = glow_count
 
 
 func push_glow(pos: Vector3, col: Color, size: float, alpha: float = 1.0) -> void:
 	if capturing or glow_mm == null or glow_count >= MAX_GLOW:
 		return
-	glow_mm.set_instance_transform(glow_count, Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * size), pos))
-	glow_mm.set_instance_color(glow_count, Color(col.r * alpha, col.g * alpha, col.b * alpha, 1.0))
+	var off := glow_count * 16
+	glow_buf[off] = size; glow_buf[off + 1] = 0.0; glow_buf[off + 2] = 0.0; glow_buf[off + 3] = pos.x
+	glow_buf[off + 4] = 0.0; glow_buf[off + 5] = size; glow_buf[off + 6] = 0.0; glow_buf[off + 7] = pos.y
+	glow_buf[off + 8] = 0.0; glow_buf[off + 9] = 0.0; glow_buf[off + 10] = size; glow_buf[off + 11] = pos.z
+	glow_buf[off + 12] = col.r * alpha; glow_buf[off + 13] = col.g * alpha; glow_buf[off + 14] = col.b * alpha; glow_buf[off + 15] = 1.0
 	glow_count += 1
 
 

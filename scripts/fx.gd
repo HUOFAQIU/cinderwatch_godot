@@ -19,7 +19,7 @@ var torch_positions: Array[Vector3] = []
 var dynamic_flames: Array[Dictionary] = []
 var flame_mmi: MultiMeshInstance3D
 var flame_mm: MultiMesh
-const MAX_FLAMES := 96
+const MAX_FLAMES := 192
 var env_lights: Array[OmniLight3D] = []
 var env_srcs: Array[Dictionary] = []
 var keep_fires: Array[Vector3] = []
@@ -63,8 +63,15 @@ var wx_mm: MultiMesh
 var wx_mat: ShaderMaterial
 var wx_fade: float = 1.0
 
-const MAX_PARTS := 900
-const MAX_BOLTS := 240
+var beacon_embers_gpu: GPUParticles3D
+var waterfall_gpu: GPUParticles3D
+var _wf_gpu_mat: ParticleProcessMaterial
+
+const MAX_PARTS := 2000
+const MAX_BOLTS := 480
+var part_buf: PackedFloat32Array = PackedFloat32Array()
+var bolt_buf: PackedFloat32Array = PackedFloat32Array()
+var flame_buf: PackedFloat32Array = PackedFloat32Array()
 const MAX_WX := 2600
 
 
@@ -232,6 +239,7 @@ func _init_particle_meshes() -> void:
 	part_mm.transform_format = MultiMesh.TRANSFORM_3D
 	part_mm.use_colors = true
 	part_mm.mesh = quad_m
+	part_buf.resize(MAX_PARTS * 16)
 	part_mm.instance_count = MAX_PARTS
 	part_mm.visible_instance_count = 0
 	part_mmi = MultiMeshInstance3D.new()
@@ -248,6 +256,7 @@ func _init_particle_meshes() -> void:
 	bolt_mm.transform_format = MultiMesh.TRANSFORM_3D
 	bolt_mm.use_colors = true
 	bolt_mm.mesh = box_m
+	bolt_buf.resize(MAX_BOLTS * 16)
 	bolt_mm.instance_count = MAX_BOLTS
 	bolt_mm.visible_instance_count = 0
 	bolt_mmi = MultiMeshInstance3D.new()
@@ -293,6 +302,7 @@ func _init_particle_meshes() -> void:
 		flame_mm.transform_format = MultiMesh.TRANSFORM_3D
 		flame_mm.use_custom_data = true
 		flame_mm.mesh = quad_m
+		flame_buf.resize(MAX_FLAMES * 16)
 		flame_mm.instance_count = MAX_FLAMES
 		flame_mm.visible_instance_count = 0
 		flame_mmi = MultiMeshInstance3D.new()
@@ -300,6 +310,51 @@ func _init_particle_meshes() -> void:
 		flame_mmi.material_override = fl_mat
 		flame_mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(flame_mmi)
+
+	# Native GPUParticles3D emitters for Great Beacon rising embers & Waterfall spray
+	beacon_embers_gpu = GPUParticles3D.new()
+	beacon_embers_gpu.name = "BeaconEmbersGPU"
+	beacon_embers_gpu.amount = 36
+	beacon_embers_gpu.lifetime = 1.8
+	beacon_embers_gpu.preprocess = 0.5
+	beacon_embers_gpu.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	beacon_embers_gpu.draw_pass_1 = quad_m
+	beacon_embers_gpu.material_override = p_mat
+	var be_mat := ParticleProcessMaterial.new()
+	be_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	be_mat.emission_box_extents = Vector3(0.45, 0.25, 0.45)
+	be_mat.direction = Vector3(0.0, 1.0, 0.0)
+	be_mat.spread = 28.0
+	be_mat.initial_velocity_min = 1.2
+	be_mat.initial_velocity_max = 2.6
+	be_mat.gravity = Vector3(0.0, 0.4, 0.0)
+	be_mat.scale_min = 0.08
+	be_mat.scale_max = 0.18
+	be_mat.color = Color(1.9, 0.82, 0.22, 0.92)
+	beacon_embers_gpu.process_material = be_mat
+	add_child(beacon_embers_gpu)
+
+	waterfall_gpu = GPUParticles3D.new()
+	waterfall_gpu.name = "WaterfallParticlesGPU"
+	waterfall_gpu.amount = 42
+	waterfall_gpu.lifetime = 0.85
+	waterfall_gpu.emitting = false
+	waterfall_gpu.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	waterfall_gpu.draw_pass_1 = quad_m
+	waterfall_gpu.material_override = p_mat
+	_wf_gpu_mat = ParticleProcessMaterial.new()
+	_wf_gpu_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	_wf_gpu_mat.emission_box_extents = Vector3(0.85, 0.28, 0.25)
+	_wf_gpu_mat.direction = Vector3(0.0, 0.85, 0.45)
+	_wf_gpu_mat.spread = 35.0
+	_wf_gpu_mat.initial_velocity_min = 0.8
+	_wf_gpu_mat.initial_velocity_max = 1.8
+	_wf_gpu_mat.gravity = Vector3(0.0, -0.5, 0.0)
+	_wf_gpu_mat.scale_min = 0.26
+	_wf_gpu_mat.scale_max = 0.50
+	_wf_gpu_mat.color = Color(0.75, 0.85, 0.95, 0.52)
+	waterfall_gpu.process_material = _wf_gpu_mat
+	add_child(waterfall_gpu)
 
 	# Ground scorch decals (flat dark quads, no depth write so AO/mist stay clean)
 	var d_mat := StandardMaterial3D.new()
@@ -648,6 +703,30 @@ func spawn_bolt(a: Vector3, b: Vector3, col: Color = Color(0.55, 0.85, 1.8), lif
 		bolts.append({"a": pts[i], "b": pts[i + 1], "col": col, "life": life, "max_life": life})
 
 
+func _put_part(idx: int, sz: float, pos: Vector3, col: Color) -> void:
+	var off := idx * 16
+	part_buf[off] = sz; part_buf[off + 1] = 0.0; part_buf[off + 2] = 0.0; part_buf[off + 3] = pos.x
+	part_buf[off + 4] = 0.0; part_buf[off + 5] = sz; part_buf[off + 6] = 0.0; part_buf[off + 7] = pos.y
+	part_buf[off + 8] = 0.0; part_buf[off + 9] = 0.0; part_buf[off + 10] = sz; part_buf[off + 11] = pos.z
+	part_buf[off + 12] = col.r; part_buf[off + 13] = col.g; part_buf[off + 14] = col.b; part_buf[off + 15] = col.a
+
+
+func _put_bolt(idx: int, basis: Basis, pos: Vector3, col: Color) -> void:
+	var off := idx * 16
+	bolt_buf[off] = basis.x.x; bolt_buf[off + 1] = basis.y.x; bolt_buf[off + 2] = basis.z.x; bolt_buf[off + 3] = pos.x
+	bolt_buf[off + 4] = basis.x.y; bolt_buf[off + 5] = basis.y.y; bolt_buf[off + 6] = basis.z.y; bolt_buf[off + 7] = pos.y
+	bolt_buf[off + 8] = basis.x.z; bolt_buf[off + 9] = basis.y.z; bolt_buf[off + 10] = basis.z.z; bolt_buf[off + 11] = pos.z
+	bolt_buf[off + 12] = col.r; bolt_buf[off + 13] = col.g; bolt_buf[off + 14] = col.b; bolt_buf[off + 15] = col.a
+
+
+func _put_flame(idx: int, sx: float, sy: float, pos: Vector3, cd0: float, cd1: float) -> void:
+	var off := idx * 16
+	flame_buf[off] = sx; flame_buf[off + 1] = 0.0; flame_buf[off + 2] = 0.0; flame_buf[off + 3] = pos.x
+	flame_buf[off + 4] = 0.0; flame_buf[off + 5] = sy; flame_buf[off + 6] = 0.0; flame_buf[off + 7] = pos.y
+	flame_buf[off + 8] = 0.0; flame_buf[off + 9] = 0.0; flame_buf[off + 10] = 1.0; flame_buf[off + 11] = pos.z
+	flame_buf[off + 12] = cd0; flame_buf[off + 13] = cd1; flame_buf[off + 14] = 0.0; flame_buf[off + 15] = 1.0
+
+
 func update_fx(dt: float, t: float, focus: Vector3) -> void:
 	# Beacon flicker & ember sparks
 	beacon_gutter = maxf(0.0, beacon_gutter - dt * 1.6)
@@ -684,32 +763,24 @@ func update_fx(dt: float, t: float, focus: Vector3) -> void:
 				"grav": -0.35,
 				"grow": 1.6,
 			})
-	# Biome-accurate waterfall spray (29-biome.js: frost=none, ember=lava embers, others=water mist)
-	if has_waterfall and biome_key != "frost" and randf() < dt * 26.0:
-		if particles.size() < MAX_PARTS:
+	# Native GPUParticles3D for Great Beacon embers & biome-accurate Waterfall spray
+	if beacon_embers_gpu != null:
+		beacon_embers_gpu.position = beacon_pos + Vector3(0.0, 0.25, 0.0)
+		beacon_embers_gpu.emitting = beacon_on > 0.2
+	if waterfall_gpu != null:
+		waterfall_gpu.position = waterfall_pos + Vector3(0.0, 0.15, 0.05)
+		waterfall_gpu.emitting = has_waterfall and biome_key != "frost"
+		if waterfall_gpu.emitting and _wf_gpu_mat != null:
 			if biome_key == "ember":
-				var is_spark := randf() < 0.65
-				particles.append({
-					"pos": waterfall_pos + Vector3(randf_range(-0.85, 0.85), randf_range(-0.2, 0.5), randf_range(-0.2, 0.3)),
-					"vel": Vector3(randf_range(-0.7, 0.7), randf_range(1.0, 2.4), randf_range(0.2, 0.9)),
-					"col": Color(2.4, 0.85, 0.16, 0.95) if is_spark else Color(0.24, 0.14, 0.12, 0.42),
-					"size": randf_range(0.10, 0.22) if is_spark else randf_range(0.40, 0.72),
-					"life": randf_range(0.6, 1.25),
-					"max_life": 1.25,
-					"grav": -0.6 if is_spark else -0.3,
-					"grow": 0.0 if is_spark else 1.2,
-				})
+				_wf_gpu_mat.color = Color(2.4, 0.85, 0.16, 0.95)
+				_wf_gpu_mat.gravity = Vector3(0.0, 0.6, 0.0)
+				_wf_gpu_mat.scale_min = 0.10
+				_wf_gpu_mat.scale_max = 0.22
 			else:
-				var mist_c := Color(0.48, 0.68, 0.56, 0.45) if biome_key == "fen" else Color(0.75, 0.85, 0.95, 0.52)
-				particles.append({
-					"pos": waterfall_pos + Vector3(randf_range(-0.85, 0.85), randf_range(-0.2, 0.4), randf_range(-0.2, 0.3)),
-					"vel": Vector3(randf_range(-0.6, 0.6), randf_range(0.6, 1.5), randf_range(0.2, 0.9)),
-					"col": mist_c,
-					"size": randf_range(0.28, 0.52),
-					"life": randf_range(0.45, 0.85),
-					"max_life": 0.85,
-					"grav": 0.5,
-				})
+				_wf_gpu_mat.color = Color(0.48, 0.68, 0.56, 0.45) if biome_key == "fen" else Color(0.75, 0.85, 0.95, 0.52)
+				_wf_gpu_mat.gravity = Vector3(0.0, -0.5, 0.0)
+				_wf_gpu_mat.scale_min = 0.28
+				_wf_gpu_mat.scale_max = 0.50
 	# Biome pond ambient FX (Emberscar lava pool embers; Mirefen marsh wisps)
 	if not pond_centers.is_empty() and beacon_on > 0.2 and particles.size() < MAX_PARTS:
 		if biome_key == "ember" and randf() < dt * 10.0:
@@ -735,8 +806,7 @@ func update_fx(dt: float, t: float, focus: Vector3) -> void:
 				"grav": -0.05,
 				"grow": 0.9,
 			})
-	if randf() < dt * 10.0:
-		spawn_sparks(beacon_pos + Vector3(randf_range(-0.3, 0.3), 0.1, randf_range(-0.3, 0.3)), 1, 2.2, Color(1.0, 0.58, 0.18))
+	# (Beacon embers handled on GPU via BeaconEmbersGPU)
 
 	# Flashes
 	for f in flash_pool:
@@ -835,9 +905,8 @@ func update_fx(dt: float, t: float, focus: Vector3) -> void:
 		var p := particles[i]
 		var a := clampf(float(p["life"]) / float(p["max_life"]), 0.0, 1.0)
 		var sz := float(p["size"]) * (0.4 + 0.6 * a) * (1.0 + float(p.get("grow", 0.0)) * (1.0 - a))
-		part_mm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * sz), p["pos"]))
 		var c: Color = p["col"]
-		part_mm.set_instance_color(i, Color(c.r, c.g, c.b, c.a * a))
+		_put_part(i, sz, p["pos"], Color(c.r, c.g, c.b, c.a * a))
 	var ci := coins.size() - 1
 	while ci >= 0:
 		var c: Dictionary = coins[ci]
@@ -854,10 +923,11 @@ func update_fx(dt: float, t: float, focus: Vector3) -> void:
 			c["vel"] = cv
 			c["pos"] = cp
 			if p_vis < MAX_PARTS:
-				part_mm.set_instance_transform(p_vis, Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.18), cp))
-				part_mm.set_instance_color(p_vis, Color(1.6, 1.25, 0.25, clampf(float(c["life"]) * 2.0, 0.0, 1.0)))
+				_put_part(p_vis, 0.18, cp, Color(1.6, 1.25, 0.25, clampf(float(c["life"]) * 2.0, 0.0, 1.0)))
 				p_vis += 1
 		ci -= 1
+	if p_vis > 0:
+		part_mm.buffer = part_buf
 	part_mm.visible_instance_count = p_vis
 
 	# Update lightning bolts
@@ -879,8 +949,9 @@ func update_fx(dt: float, t: float, focus: Vector3) -> void:
 		var up_v := Vector3.FORWARD if absf(dn.y) > 0.98 else Vector3.UP
 		var b_basis := Basis.looking_at(dn, up_v)
 		var w := 0.09 * clampf(float(b["life"]) / float(b["max_life"]), 0.2, 1.0)
-		bolt_mm.set_instance_transform(i, Transform3D(b_basis.scaled_local(Vector3(w, w, length)), mid))
-		bolt_mm.set_instance_color(i, b["col"])
+		_put_bolt(i, b_basis.scaled_local(Vector3(w, w, length)), mid, b["col"])
+	if b_vis > 0:
+		bolt_mm.buffer = bolt_buf
 	bolt_mm.visible_instance_count = b_vis
 
 	# Render all animated flickering flames (tower torches/braziers, roadside torches, handheld torches)
@@ -896,8 +967,7 @@ func update_fx(dt: float, t: float, focus: Vector3) -> void:
 			var fseed: float = float(df["seed"])
 			var flk := 0.88 + 0.16 * CWUtil.n1(t * 9.5 + fseed * 3.1, fseed)
 			var f_int := float(df.get("intensity", 0.95)) * 0.88 * flk * beacon_on
-			flame_mm.set_instance_transform(f_idx, Transform3D(Basis.IDENTITY.scaled(Vector3(fw, fh * flk, 1.0)), fp + Vector3(0.0, fh * 0.38, 0.0)))
-			flame_mm.set_instance_custom_data(f_idx, Color(fseed, f_int, 0.0, 1.0))
+			_put_flame(f_idx, fw, fh * flk, fp + Vector3(0.0, fh * 0.38, 0.0), fseed, f_int)
 			f_idx += 1
 		# 2) Handheld torches carried by footmen, torch skeletons & sappers
 		for ti in range(torch_positions.size()):
@@ -906,8 +976,7 @@ func update_fx(dt: float, t: float, focus: Vector3) -> void:
 			var tp: Vector3 = torch_positions[ti]
 			var tseed := 17.0 + float(ti) * 2.7
 			var tflk := 0.86 + 0.18 * CWUtil.n1(t * 11.0 + tseed * 2.3, tseed)
-			flame_mm.set_instance_transform(f_idx, Transform3D(Basis.IDENTITY.scaled(Vector3(0.42, 0.62 * tflk, 1.0)), tp + Vector3(0.0, 0.18, 0.0)))
-			flame_mm.set_instance_custom_data(f_idx, Color(tseed, 1.12 * tflk * beacon_on, 0.0, 1.0))
+			_put_flame(f_idx, 0.42, 0.62 * tflk, tp + Vector3(0.0, 0.18, 0.0), tseed, 1.12 * tflk * beacon_on)
 			f_idx += 1
 		# 3) Roadside wooden torches (keep_fires beyond first 2 wall lanterns)
 		for ki in range(2, keep_fires.size()):
@@ -916,9 +985,10 @@ func update_fx(dt: float, t: float, focus: Vector3) -> void:
 			var kp: Vector3 = keep_fires[ki]
 			var kseed := 31.0 + float(ki) * 3.3
 			var kflk := 0.88 + 0.16 * CWUtil.n1(t * 9.0 + kseed * 1.9, kseed)
-			flame_mm.set_instance_transform(f_idx, Transform3D(Basis.IDENTITY.scaled(Vector3(0.36, 0.58 * kflk, 1.0)), kp + Vector3(0.0, 0.20, 0.0)))
-			flame_mm.set_instance_custom_data(f_idx, Color(kseed, 0.94 * kflk * beacon_on, 0.0, 1.0))
+			_put_flame(f_idx, 0.36, 0.58 * kflk, kp + Vector3(0.0, 0.20, 0.0), kseed, 0.94 * kflk * beacon_on)
 			f_idx += 1
+		if f_idx > 0:
+			flame_mm.buffer = flame_buf
 		flame_mm.visible_instance_count = f_idx
 
 	# Update GPU weather fade & point-light illumination

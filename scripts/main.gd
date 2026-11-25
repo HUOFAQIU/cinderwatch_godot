@@ -10,26 +10,28 @@ const BASE_VIEW_H := 25.0
 const MAX_IH := 620
 const MAX_PIX := 690000.0
 
-var sub_vp: SubViewport
-var post_rect: TextureRect
+@onready var sub_vp: SubViewport = %SubViewport
+@onready var world: Node3D = %World
+@onready var world_env: WorldEnvironment = %WorldEnvironment
+@onready var cam: Camera3D = %Camera3D
+@onready var post_rect: TextureRect = %PostProcessRect
+
+@onready var terrain: CWTerrain = %Terrain
+@onready var rig: CWRig = %Rig
+@onready var fx: CWFx = %Fx
+@onready var towers_sys: CWTowers = %Towers
+@onready var audio: CWAudio = %Audio
+@onready var monsters_sys: CWMonsters = %Monsters
+@onready var game: CWGame = %Game
+@onready var ui: CWUI = %UI
+
 var post_mat: ShaderMaterial
 var mist_mat: ShaderMaterial
 var ao_mat: ShaderMaterial
 var dof_mat: ShaderMaterial
 var screen_fade: float = 0.0
-var cam: Camera3D
-var world_env: WorldEnvironment
 var env: Environment
-
 var gfx: CWGfx
-var terrain: CWTerrain
-var rig: CWRig
-var fx: CWFx
-var towers_sys: CWTowers
-var monsters_sys: CWMonsters
-var audio: CWAudio
-var game: CWGame
-var ui: CWUI
 
 var cam_pos := Vector3.ZERO
 var cam_focus := Vector3.ZERO
@@ -75,55 +77,15 @@ func _ready() -> void:
 
 
 func _setup_viewport_and_post() -> void:
-	sub_vp = SubViewport.new()
-	sub_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	sub_vp.msaa_3d = Viewport.MSAA_DISABLED
-	sub_vp.use_hdr_2d = true
-	sub_vp.size = Vector2i(960, 540)
-	add_child(sub_vp)
-
-	post_rect = TextureRect.new()
-	post_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	post_rect.stretch_mode = TextureRect.STRETCH_SCALE
 	post_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	post_rect.texture = sub_vp.get_texture()
-	post_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
 	post_mat = ShaderMaterial.new()
 	post_mat.shader = load("res://shaders/post_process.gdshader")
 	post_rect.material = post_mat
-	add_child(post_rect)
 
 
 func _setup_world() -> void:
-	var world := Node3D.new()
-	world.name = "World"
-	sub_vp.add_child(world)
-
-	# WorldEnvironment with Glow & SSAO
-	env = Environment.new()
-	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR # Tonemapping handled in post_process.gdshader
-	env.glow_enabled = true
-	env.glow_intensity = 0.60
-	env.glow_strength = 0.86
-	env.glow_bloom = 0.0
-	env.glow_hdr_threshold = 1.32
-	env.glow_hdr_scale = 2.0
-	env.ssao_enabled = false
-	env.ssao_radius = 1.2
-	env.ssao_intensity = 2.0
-	world_env = WorldEnvironment.new()
-	world_env.environment = env
-	world.add_child(world_env)
-
-	# Isometric Orthographic Camera3D
-	cam = Camera3D.new()
-	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-	cam.size = BASE_VIEW_H
-	cam.near = 1.0
-	cam.far = 210.0
-	cam.current = true
-	world.add_child(cam)
+	env = world_env.environment
 
 	# Shared fullscreen quad for P0-1 Screen-Space AO (priority 126) & P0-2 Ground Mist (priority 127)
 	var mq := QuadMesh.new()
@@ -165,50 +127,29 @@ func _setup_world() -> void:
 		dof_mesh.material_override = dof_mat
 		cam.add_child(dof_mesh)
 
-	# Core Systems
+	# Core Systems (scene nodes wired via @onready in main.tscn)
 	gfx = CWGfx.new()
 	gfx.init_resources()
 
-	audio = CWAudio.new()
-	add_child(audio)
 	audio.init_audio()
-
-	terrain = CWTerrain.new()
 	terrain.gfx = gfx
-	world.add_child(terrain)
-
-	rig = CWRig.new()
-	world.add_child(rig)
 	rig.init_kits(gfx)
-
-	fx = CWFx.new()
-	world.add_child(fx)
 	fx.init_fx()
-
-	towers_sys = CWTowers.new()
-	world.add_child(towers_sys)
 	towers_sys.init_towers(gfx, fx, audio, rig, terrain)
+	monsters_sys.init_monsters(terrain, rig, fx, audio, towers_sys)
 
-	game = CWGame.new()
-	monsters_sys = CWMonsters.new()
-	monsters_sys.init_monsters(
-		terrain, rig, fx, audio, towers_sys,
-		Callable(game, "on_monster_killed"),
-		Callable(game, "on_monster_leaked"),
-		Callable(game, "on_boss_dying")
-	)
-
-	ui = CWUI.new()
-	add_child(ui)
 	ui.main_ref = self
 	ui.init_ui(game, audio, world, cam, sub_vp)
-	monsters_sys.on_new_mob_cb = Callable(ui, "saw_monster")
 
-	game.init_game(
-		terrain, towers_sys, monsters_sys, fx, rig, audio, env,
-		Callable(ui, "show_banner"),
-		Callable(ui, "spawn_hud_coins")
-	)
+	# Godot signal wiring
+	monsters_sys.monster_killed.connect(game.on_monster_killed)
+	monsters_sys.monster_leaked.connect(game.on_monster_leaked)
+	monsters_sys.boss_dying.connect(game.on_boss_dying)
+	monsters_sys.new_mob_spawned.connect(ui.saw_monster)
+	game.banner_requested.connect(ui.show_banner)
+	game.coin_dropped.connect(ui.spawn_hud_coins)
+
+	game.init_game(terrain, towers_sys, monsters_sys, fx, rig, audio, env)
 
 
 func _on_window_resize() -> void:
@@ -352,8 +293,8 @@ func _process(delta: float) -> void:
 func _update_camera(dt: float) -> void:
 	var has_boss := false
 	if game.phase == "play" or game.phase == "defeat":
-		for m in monsters_sys.mons:
-			if not bool(m["dead"]) and bool(m["def"].get("boss", false)):
+		for m: CWMonsterUnit in monsters_sys.mons:
+			if not m.dead and bool(m.def.get("boss", false)):
 				has_boss = true
 				break
 
@@ -600,6 +541,21 @@ func _unhandled_input(event: InputEvent) -> void:
 			game.switch_biome(ke.keycode - KEY_F1)
 			audio.play_sfx("ui_click", 0.7)
 			return
+		elif ke.keycode == KEY_F6:
+			var stress_types := ["skel", "rat", "slime", "spider", "ghoul", "knight", "bat", "wolf"]
+			for si in range(100):
+				monsters_sys.spawn(stress_types[si % stress_types.size()], 1.0, randf_range(0.5, 16.0))
+			audio.play_sfx("ui_click", 0.7)
+			print("[StressTest] Spawned +100 units | total_mons=%d | fps=%d" % [monsters_sys.mons.size(), Engine.get_frames_per_second()])
+			return
+		elif ke.keycode == KEY_F7:
+			var box_n: int = rig.batches["box"].count
+			var sph_n: int = rig.batches["sphere"].count
+			print("[Perf] FPS=%d | mons=%d | footmen=%d | box=%d/%d | sphere=%d/%d | glow=%d/%d" % [
+				Engine.get_frames_per_second(), monsters_sys.mons.size(), towers_sys.footmen.size(),
+				box_n, rig.batches["box"].cap, sph_n, rig.batches["sphere"].cap, rig.glow_count, rig.MAX_GLOW
+			])
+			return
 
 	if event.is_action_pressed("toggle_commander"):
 		game.ai_commander = not game.ai_commander
@@ -648,7 +604,16 @@ func _pick_pad(screen_pos: Vector2):
 	var ray_dir := cam.project_ray_normal(vp_pos)
 	if absf(ray_dir.y) < 1e-4:
 		return null
-	# Multi-height pad & tower body picking (matches 72-ui.js:72-84)
+	# Native Godot Physics 3D raycast against layer 16 (PadPickBody & TowerNode/PickBody)
+	var w3d := world.get_world_3d()
+	if w3d != null and w3d.direct_space_state != null:
+		var rq := PhysicsRayQueryParameters3D.create(ray_orig, ray_orig + ray_dir * 200.0, 16)
+		var hit := w3d.direct_space_state.intersect_ray(rq)
+		if not hit.is_empty():
+			var col_obj: Object = hit.get("collider", null)
+			if col_obj != null and col_obj.has_meta("pad"):
+				return col_obj.get_meta("pad")
+	# Fallback geometric pad picking
 	var best = null
 	var best_d := 1e9
 	for pad in terrain.layout["pads"]:

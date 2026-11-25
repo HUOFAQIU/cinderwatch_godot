@@ -17,6 +17,8 @@ var bridge_pos: Vector2 = Vector2.ZERO
 var has_bridge: bool = false
 var env_lights: Array[Dictionary] = []
 var keep_fires: Array[Vector3] = []
+var road_path: Path3D = null
+var stream_path: Path3D = null
 var pond_centers: Array[Vector3] = []
 var pad_meshes: Array[MeshInstance3D] = []
 var road_smooth: Array[Vector2] = []
@@ -149,6 +151,7 @@ func build_board(p_gfx: CWGfx, p_seed: int, biome_idx: int, biome_start: int = 0
 
 	if mirrored:
 		_apply_mirror_xz()
+	_rebuild_nav_paths()
 	return {
 		"mirrored": mirrored,
 		"layout": layout,
@@ -767,6 +770,10 @@ func _build_pads() -> void:
 			acc += road[ri + dk]
 		road_smooth.append(acc / float(2 * w + 1))
 
+	var pad_pick_shape := CylinderShape3D.new()
+	pad_pick_shape.radius = 1.55
+	pad_pick_shape.height = 0.55
+
 	for pad in layout["pads"]:
 		var soup := CWGfx.Soup.new()
 		var py_rot := rng.rr(0.0, TAU)
@@ -788,6 +795,16 @@ func _build_pads() -> void:
 		mi.mesh = soup.build()
 		mi.material_override = gfx.mat_world
 		mi.rotation.y = py_rot
+		var pad_body := StaticBody3D.new()
+		pad_body.name = "PadPickBody"
+		pad_body.collision_layer = 16
+		pad_body.collision_mask = 0
+		pad_body.set_meta("pad", pad)
+		var pad_col := CollisionShape3D.new()
+		pad_col.shape = pad_pick_shape
+		pad_col.position = Vector3(0.0, 0.2, 0.0)
+		pad_body.add_child(pad_col)
+		mi.add_child(pad_body)
 		_attach_to_chunk(mi, Vector3(pad["x"], pad["y"], pad["z"]))
 		pad_meshes.append(mi)
 
@@ -1792,3 +1809,33 @@ func _apply_mirror_xz() -> void:
 		layout["cross_pt"] = Vector2(cp.y, cp.x)
 		layout["stream_front"] = not bool(layout.get("stream_front", true))
 	_mirror_active = true
+
+
+func _rebuild_nav_paths() -> void:
+	if road_path != null and is_instance_valid(road_path):
+		road_path.queue_free()
+	if stream_path != null and is_instance_valid(stream_path):
+		stream_path.queue_free()
+	road_path = Path3D.new()
+	road_path.name = "RoadPath"
+	var r_curve := Curve3D.new()
+	var r_pts: Array = layout.get("road", [])
+	for pt_v in r_pts:
+		var pt: Vector2 = pt_v
+		var rx: float = pt.y if mirrored else pt.x
+		var rz: float = pt.x if mirrored else pt.y
+		r_curve.add_point(Vector3(rx, height_at(rx, rz), rz))
+	road_path.curve = r_curve
+	add_child(road_path)
+
+	stream_path = Path3D.new()
+	stream_path.name = "StreamPath"
+	var s_curve := Curve3D.new()
+	var s_pts: Array = layout.get("stream", [])
+	for pt_v in s_pts:
+		var pt: Vector2 = pt_v
+		var sx: float = pt.y if mirrored else pt.x
+		var sz: float = pt.x if mirrored else pt.y
+		s_curve.add_point(Vector3(sx, height_at(sx, sz), sz))
+	stream_path.curve = s_curve
+	add_child(stream_path)

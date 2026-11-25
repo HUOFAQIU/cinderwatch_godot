@@ -24,10 +24,23 @@ var _bake_thread: Thread = null
 const SAVE_PATH := "user://cinderwatch_save.cfg"
 
 
+func _ensure_bus(bus_name: String) -> void:
+	if AudioServer.get_bus_index(bus_name) >= 0:
+		return
+	var idx := AudioServer.bus_count
+	AudioServer.add_bus(idx)
+	AudioServer.set_bus_name(idx, bus_name)
+	AudioServer.set_bus_send(idx, &"Master")
+
+
 func init_audio() -> void:
 	_load_mute_pref()
+	_ensure_bus("SFX")
+	_ensure_bus("Ambience")
+	AudioServer.set_bus_mute(0, muted)
 	for _i in range(POOL_SIZE):
 		var p := AudioStreamPlayer2D.new()
+		p.bus = &"SFX"
 		p.max_distance = 10000.0
 		p.attenuation = 0.0
 		p.panning_strength = 0.85
@@ -105,6 +118,7 @@ func _load_mute_pref() -> void:
 
 func set_muted(m: bool) -> void:
 	muted = m
+	AudioServer.set_bus_mute(0, muted)
 	AudioServer.set_bus_mute(0, muted or paused_by_focus)
 	var cfg := ConfigFile.new()
 	cfg.load(SAVE_PATH)
