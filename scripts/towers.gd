@@ -142,10 +142,11 @@ func build_tower(pad: Dictionary, kind: String, _pal: Dictionary) -> Dictionary:
 		"flame_desc": {},
 		"state": "build",
 		"build_t": 0.0,
+		"ignite_t": 0.0,
 		"cd": 0.35,
 		"stun": 0.0,
 		"recent": 0.0,
-		"emitter": fx.add_emitter(Vector3(pad["x"], float(pad["y"]) + 3.0, pad["z"]), def["col"], float(def["light"][0]), 15.0),
+		"emitter": fx.add_emitter(Vector3(pad["x"], float(pad["y"]) + 3.0, pad["z"]), def["col"], 0.0, 15.0),
 		"men": [],
 		"rally": _find_rally_point(float(pad["x"]), float(pad["z"])),
 	}
@@ -167,7 +168,8 @@ func upgrade_tower(t: Dictionary, _pal: Dictionary) -> bool:
 	t["spent"] = int(t["spent"]) + int(def["cost"][int(t["lvl"])])
 	t["state"] = "build"
 	t["build_t"] = 0.0
-	t["emitter"]["energy"] = float(def["light"][int(t["lvl"])])
+	t["ignite_t"] = 0.0
+	t["emitter"]["energy"] = 0.0
 	_load_tower_visuals(t)
 	audio.play_sfx("upgrade", 0.95)
 	tower_upgraded.emit(t)
@@ -254,17 +256,26 @@ func _load_tower_visuals(t: Dictionary) -> void:
 		t["door_local"] = inst.get_meta("door_local")
 
 	var fl_world: Vector3 = Vector3(t["x"], t["y"], t["z"]) + Basis(Vector3.UP, (t["node"] as Node3D).rotation.y) * Vector3(t["flame_local"])
+	var ol := inst.get_node_or_null("TowerLight") as OmniLight3D
+	if ol != null:
+		ol.light_energy = 0.0
 	t["emitter"]["pos"] = fl_world + Vector3(0, 0.35, 0)
-	t["emitter"]["omni"] = inst.get_node_or_null("TowerLight")
+	t["emitter"]["omni"] = ol
 	t["flame_world"] = fl_world
 	var knd := String(t["kind"])
 	var lvl := int(t["lvl"])
+	var bw := (0.62 if lvl == 0 else 0.72) if knd == "archer" else (0.34 if knd == "bombard" else (0.38 if lvl == 0 else 0.54))
+	var bh := (0.88 if lvl == 0 else 1.04) if knd == "archer" else (0.52 if knd == "bombard" else (0.60 if lvl == 0 else 0.82))
+	var bi := (1.04 if lvl == 0 else 1.16) if knd == "archer" else 1.08
+	t["flame_base_w"] = bw
+	t["flame_base_h"] = bh
+	t["flame_base_int"] = bi
 	t["flame_desc"] = {
 		"pos": fl_world,
-		"w": 0.72 if knd == "archer" else (0.34 if knd == "bombard" else (0.38 if lvl == 0 else 0.56)),
-		"h": 1.08 if knd == "archer" else (0.52 if knd == "bombard" else (0.62 if lvl == 0 else 0.86)),
+		"w": bw * 0.25,
+		"h": bh * 0.12,
 		"seed": float(t["pad"]["idx"]) * 3.7 + 1.1,
-		"intensity": 1.22 if knd == "archer" else 1.12,
+		"intensity": 0.0,
 	}
 
 
@@ -285,12 +296,21 @@ func update_towers(dt: float, monsters_sys: CWMonsters, dmg_mul: float) -> void:
 		var knd := String(t["kind"])
 		var lvl := int(t["lvl"])
 		var def: Dictionary = t["def"]
+		var ig := minf(1.0, float(t["ignite_t"]) + dt / 0.35)
+		t["ignite_t"] = ig
+		var k_ig := ig * ig * (3.0 - 2.0 * ig)
 		if knd != "spire":
-			fx.dynamic_flames.append(t["flame_desc"])
-			if randf() < dt * 8.0:
-				fx.spawn_flame_puff(t["flame_world"], 0.24)
+			var fd: Dictionary = t["flame_desc"]
+			var w_mul := lerpf(0.25, 1.0, k_ig)
+			var h_mul := lerpf(0.12, 1.0, k_ig) + sin(ig * PI) * 0.14
+			fd["w"] = float(t["flame_base_w"]) * w_mul
+			fd["h"] = float(t["flame_base_h"]) * h_mul
+			fd["intensity"] = float(t["flame_base_int"]) * k_ig
+			fx.dynamic_flames.append(fd)
+			if ig > 0.4 and randf() < dt * 8.0:
+				fx.spawn_flame_puff(t["flame_world"], 0.22)
 
-		var base_e := float(def["light"][lvl])
+		var base_e := float(def["light"][lvl]) * k_ig
 		if float(t["stun"]) > 0.0:
 			t["stun"] = maxf(0.0, float(t["stun"]) - dt)
 			t["emitter"]["energy"] = base_e * 0.12
@@ -346,11 +366,17 @@ func _update_build_anim(t: Dictionary, dt: float, now_s: float) -> void:
 					audio.play_sfx("build", 0.55)
 	if bt >= T_END:
 		t["state"] = "active"
+		t["ignite_t"] = 0.0
 		if t["scaffold"] != null:
 			(t["scaffold"] as MeshInstance3D).queue_free()
 			t["scaffold"] = null
 		fx.spawn_dust(Vector3(t["x"], float(t["y"]) + 0.2, t["z"]), 8, 2.0, 1.1, 0.6)
 		fx.spawn_sparks(Vector3(t["x"], float(t["y"]) + 1.2, t["z"]), 8, 3.0, Color(1.0, 0.78, 0.35))
+		if String(t["kind"]) != "spire":
+			var fw: Vector3 = t["flame_world"]
+			fx.spawn_sparks(fw, 6, 2.4, Color(2.2, 0.95, 0.3))
+			fx.spawn_flame_puff(fw, 0.28)
+			fx.spawn_flame_puff(fw, 0.22)
 
 
 func _update_archer(t: Dictionary, def: Dictionary, lvl: int, dt: float, now_s: float, monsters_sys: CWMonsters, dmg_mul: float) -> void:

@@ -582,9 +582,10 @@ func update_fx(dt: float, t: float, focus: Vector3) -> void:
 func _update_beacon_and_env(dt: float, t: float) -> void:
 	beacon_gutter = maxf(0.0, beacon_gutter - dt * 1.6)
 	var flick := 0.86 + 0.10 * CWUtil.n1(t * 6.3, 1.0) + 0.06 * CWUtil.n1(t * 17.0, 2.0)
+	var light_flick := 0.94 + 0.045 * CWUtil.n1(t * 2.4, 1.0) + 0.02 * CWUtil.n1(t * 5.5, 2.0)
 	var lvl := beacon_level * beacon_on * (1.0 - 0.5 * beacon_gutter)
-	beacon_light.position = beacon_pos + Vector3(CWUtil.n1(t * 5.0, 3.0) * 0.12, 1.65 + CWUtil.n1(t * 4.0, 4.0) * 0.10, CWUtil.n1(t * 5.0, 5.0) * 0.12)
-	beacon_light.light_energy = 175.0 * beacon_mul * beacon_on * (0.35 + 0.65 * lvl) * flick
+	beacon_light.position = beacon_pos + Vector3(0.0, 1.65, 0.0)
+	beacon_light.light_energy = 175.0 * beacon_mul * beacon_on * (0.35 + 0.65 * lvl) * light_flick
 
 	beacon_flame_root.position = beacon_pos + Vector3(0.0, 0.05, 0.0)
 	var f_sc := clampf(beacon_on * (0.45 + 0.55 * lvl), 0.0, 1.12) * (0.94 + 0.08 * flick)
