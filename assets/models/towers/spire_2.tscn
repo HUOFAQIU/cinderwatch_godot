@@ -66,3 +66,10 @@ metadata/role = "shard"
 [node name="Scaffold" type="MeshInstance3D" parent="." unique_id=1565545464]
 mesh = ExtResource("11_r50hb")
 metadata/role = "scaffold"
+
+[node name="TowerLight" type="OmniLight3D" parent="." unique_id=1746514624]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.88, 0)
+light_color = Color(0.4, 0.8, 1, 1)
+light_energy = 8.16
+omni_range = 14.25
+omni_attenuation = 1.8

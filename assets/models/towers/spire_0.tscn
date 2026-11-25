@@ -34,3 +34,10 @@ metadata/base_y = 3.13
 [node name="Scaffold" type="MeshInstance3D" parent="." unique_id=1512976200]
 mesh = ExtResource("5_dagrc")
 metadata/role = "scaffold"
+
+[node name="TowerLight" type="OmniLight3D" parent="." unique_id=1471523004]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.48, 0)
+light_color = Color(0.4, 0.8, 1, 1)
+light_energy = 5.1
+omni_range = 14.25
+omni_attenuation = 1.8

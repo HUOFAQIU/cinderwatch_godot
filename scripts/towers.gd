@@ -255,6 +255,7 @@ func _load_tower_visuals(t: Dictionary) -> void:
 
 	var fl_world: Vector3 = Vector3(t["x"], t["y"], t["z"]) + Basis(Vector3.UP, (t["node"] as Node3D).rotation.y) * Vector3(t["flame_local"])
 	t["emitter"]["pos"] = fl_world + Vector3(0, 0.35, 0)
+	t["emitter"]["omni"] = inst.get_node_or_null("TowerLight")
 	t["flame_world"] = fl_world
 	var knd := String(t["kind"])
 	var lvl := int(t["lvl"])

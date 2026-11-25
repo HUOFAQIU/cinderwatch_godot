@@ -28,3 +28,10 @@ metadata/delay = 0.42
 [node name="Scaffold" type="MeshInstance3D" parent="." unique_id=1538582271]
 mesh = ExtResource("4_8coau")
 metadata/role = "scaffold"
+
+[node name="TowerLight" type="OmniLight3D" parent="." unique_id=1666963315]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.97, 0.87, 1.2)
+light_color = Color(1, 0.64, 0.26, 1)
+light_energy = 7.82
+omni_range = 14.25
+omni_attenuation = 1.8

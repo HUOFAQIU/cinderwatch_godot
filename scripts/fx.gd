@@ -22,7 +22,6 @@ var beacon_flame_mats: Array[ShaderMaterial] = []
 var beacon_halo_mat: ShaderMaterial
 var lantern_flames: Array[MeshInstance3D] = []
 var spot_pool: Array[Dictionary] = []
-var tower_lights: Array[OmniLight3D] = []
 var torch_lights: Array[OmniLight3D] = []
 var env_lights: Array[OmniLight3D] = []
 var flash_pool: Array[Dictionary] = []
@@ -145,11 +144,6 @@ func init_fx() -> void:
 	for ch in %SpotPool.get_children():
 		if ch is SpotLight3D:
 			spot_pool.append({"light": ch, "owner": null, "fade": 0.0})
-
-	tower_lights.clear()
-	for ch in %TowerLights.get_children():
-		if ch is OmniLight3D:
-			tower_lights.append(ch as OmniLight3D)
 
 	torch_lights.clear()
 	for ch in %TorchLights.get_children():
@@ -675,17 +669,12 @@ func _update_lights(dt: float, t: float, focus: Vector3) -> void:
 			an += 1
 
 	var spot_n := spot_pool.size()
-	for i in range(tower_lights.size()):
-		var ol := tower_lights[i]
-		if i < an:
-			var e := _active_emitters[i]
+	for i in range(an):
+		var e := _active_emitters[i]
+		var ol: OmniLight3D = e.get("omni", null)
+		if is_instance_valid(ol):
 			var fl := 0.88 + 0.12 * CWUtil.n1(t * 7.5 + float(e["seed"]), float(e["seed"]))
-			ol.position = e["pos"]
-			ol.light_color = e["col"]
-			ol.omni_range = float(e["range"]) * 0.95
 			ol.light_energy = float(e["energy"]) * 0.68 * fl * (0.42 if i < spot_n else 1.0)
-		else:
-			ol.light_energy = 0.0
 
 	for i in range(spot_n):
 		var sp: SpotLight3D = spot_pool[i]["light"]
@@ -919,8 +908,6 @@ func clear_fx() -> void:
 	for e in emitters:
 		e["alive"] = false
 	emitters.clear()
-	for ol in tower_lights:
-		ol.light_energy = 0.0
 	for tl in torch_lights:
 		tl.light_energy = 0.0
 	torch_positions.clear()
