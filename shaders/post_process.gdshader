@@ -36,7 +36,7 @@ vec3 filmic(vec3 x) {
 	return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
 }
 
-vec3 sample_crisp(sampler2D tex, vec2 uv) {
+vec2 crisp_uv(vec2 uv) {
 	vec2 texel = uv * u_tex_size + u_sub;
 	vec2 scale = max(u_out_size / max(u_tex_size, vec2(1.0)), vec2(1.0));
 	vec2 tf = floor(texel);
@@ -44,12 +44,11 @@ vec3 sample_crisp(sampler2D tex, vec2 uv) {
 	vec2 region = 0.5 - 0.5 / scale;
 	vec2 cen = f - 0.5;
 	vec2 off = (cen - clamp(cen, -region, region)) * scale + 0.5;
-	return texture(tex, (tf + off) / u_tex_size).rgb;
+	return (tf + off) / u_tex_size;
 }
 
 void fragment() {
-	vec2 px = 1.0 / max(u_tex_size, vec2(1.0));
-	vec3 c = sample_crisp(TEXTURE, UV);
+	vec3 c = texture(TEXTURE, crisp_uv(UV)).rgb;
 
 	// Depth-aware tilt-shift DoF now runs in atmo_dof.gdshader inside SubViewport
 

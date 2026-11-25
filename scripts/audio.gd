@@ -51,9 +51,22 @@ func init_audio() -> void:
 	_bake_thread.start(_bake_all_async)
 
 
+var _exiting: bool = false
+
+
 func _exit_tree() -> void:
+	_exiting = true
 	if _bake_thread != null and _bake_thread.is_started():
 		_bake_thread.wait_to_finish()
+	for p in sfx_pool:
+		if is_instance_valid(p):
+			p.stop()
+			p.stream = null
+	for amb in [amb_wind, amb_fire, amb_drone]:
+		if amb != null and is_instance_valid(amb):
+			amb.stop()
+			amb.stream = null
+	sfx_clips.clear()
 
 
 func _bake_all_async() -> void:
@@ -91,6 +104,8 @@ func _bake_all_async() -> void:
 
 
 func _on_bake_done(clips: Dictionary, wind_w: AudioStreamWAV, fire_w: AudioStreamWAV, drone_w: AudioStreamWAV) -> void:
+	if _exiting:
+		return
 	sfx_clips = clips
 	amb_wind = _make_loop_player(wind_w, -20.0)
 	amb_fire = _make_loop_player(fire_w, -22.0)
