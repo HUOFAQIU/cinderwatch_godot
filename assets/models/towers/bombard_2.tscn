@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://g67d60ae2ip6"]
+[gd_scene format=3]
 
 [ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/bombard_2_p0.res" id="1_gygrx"]
 [ext_resource type="ArrayMesh" path="res://assets/models/towers/meshes/bombard_2_tur0.res" id="2_lpmcq"]

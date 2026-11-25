@@ -105,7 +105,7 @@ func spawn(type: String, hp_mul: float = 1.0, s_pos: float = -1.0, lat_ofs: floa
 	var def: Dictionary = DEFS[type]
 	var s := randf_range(0.5, 1.2) if s_pos < 0.0 else s_pos
 	var lat := randf_range(-0.8, 0.8) if lat_ofs > 100.0 else lat_ofs
-	var sample := CWLayout.sample_path(terrain.layout, s)
+	var sample := terrain.sample_path(s)
 	var p: Vector2 = sample["pos"]
 	var d: Vector2 = sample["dir"]
 	var perp := Vector2(-d.y, d.x)
@@ -493,7 +493,7 @@ func update_monsters(dt: float) -> void:
 				sy_v = lut_sy[li] + (lut_sy[li1] - lut_sy[li]) * frac
 				m.prog = m.s * inv_total_len
 			else:
-				var sample := terrain.sample_smooth_road(m.s) if is_fly else CWLayout.sample_path(terrain.layout, m.s)
+				var sample := terrain.sample_smooth_road(m.s) if is_fly else terrain.sample_path(m.s)
 				var p: Vector2 = sample["pos"]
 				var d: Vector2 = sample["dir"]
 				px_v = -d.y
