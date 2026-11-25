@@ -2,11 +2,12 @@ class_name CWUI
 extends CanvasLayer
 
 # Native Godot Control HUD (scenes/ui.tscn + assets/themes/pixel_theme.tres),
-# lightweight WorldOverlay for 3D-projected HP bars & flying pixel coins,
-# terrain-conforming 3D range/pad rings, and integer UI scaling.
+# dirty-checked theme/text updates, zero-GC flying coin pool,
+# lightweight WorldOverlay for 3D HP bars, and terrain-conforming 3D rings.
 
 const FONT_LINE := 9
 const FONT_BASE := 8
+const MAX_HUD_COINS := 70
 
 const COL_BG := Color(0.0353, 0.0431, 0.0667, 0.86)
 const COL_BG2 := Color(0.0941, 0.1059, 0.1490, 0.94)
@@ -109,11 +110,15 @@ var ui_s: int = 3
 @onready var upgrade_btn: Button = %UpgradeBtn
 @onready var sell_btn: Button = %SellBtn
 
+# Cached child references (zero per-frame find_child)
 var _bio_btns: Array[Button] = []
 var _build_cards: Array[PanelContainer] = []
+var _build_tower_icons: Array[TextureRect] = []
+var _build_cost_icons: Array[TextureRect] = []
+var _build_cost_labels: Array[Label] = []
 var _star_icons: Array[TextureRect] = []
 
-# Shared reusable StyleBoxFlat presets (zero per-frame allocations)
+# Shared reusable StyleBoxFlat presets
 var _sb_plate: StyleBoxFlat
 var _sb_plate_hi: StyleBoxFlat
 var _sb_plate_hover: StyleBoxFlat
@@ -148,8 +153,9 @@ var _cmd_hovered: bool = false
 var _hovered_build_kind: String = ""
 var _hovered_tip_ctrl: Control = null
 var _hovered_tip_text: String = ""
+var _overlay_was_dirty: bool = false
 
-# HUD feedback animations
+# HUD feedback animations & zero-GC flying coin SoA pool
 var gold_shown: float = 240.0
 var gold_bump: float = 0.0
 var gold_icon_pos: Vector2 = Vector2(92.0, 28.0)
@@ -158,7 +164,15 @@ var deny_t: float = 0.0
 var slain_bump: float = 0.0
 var last_slain: int = 0
 var last_lives: int = 20
-var hud_coins: Array[Dictionary] = []
+
+var _hc_cnt: int = 0
+var _hc_sx: PackedFloat32Array = PackedFloat32Array()
+var _hc_sy: PackedFloat32Array = PackedFloat32Array()
+var _hc_cx: PackedFloat32Array = PackedFloat32Array()
+var _hc_cy: PackedFloat32Array = PackedFloat32Array()
+var _hc_t: PackedFloat32Array = PackedFloat32Array()
+var _hc_dur: PackedFloat32Array = PackedFloat32Array()
+var _hc_val: PackedFloat32Array = PackedFloat32Array()
 
 # Banner
 var banner_text: String = ""
@@ -185,6 +199,10 @@ func init_ui(p_game: CWGame, p_audio: CWAudio, world_root: Node3D, p_cam: Camera
 	gold_shown = float(game.gold)
 	last_lives = game.lives
 	last_slain = game.slain
+
+	_hc_sx.resize(MAX_HUD_COINS); _hc_sy.resize(MAX_HUD_COINS)
+	_hc_cx.resize(MAX_HUD_COINS); _hc_cy.resize(MAX_HUD_COINS)
+	_hc_t.resize(MAX_HUD_COINS); _hc_dur.resize(MAX_HUD_COINS); _hc_val.resize(MAX_HUD_COINS)
 
 	_load_pixel_assets()
 	_init_styleboxes()
@@ -240,21 +258,34 @@ func _init_styleboxes() -> void:
 	_sb_btn_sell_armed = _make_sb(COL_BG2, COL_RED, 4, 3)
 
 
+# --- Dirty-checked UI setters (prevent per-frame theme/layout thrashing) ---
+func _set_style(ctrl: Control, prop: StringName, sb: StyleBox) -> void:
+	if not ctrl.has_theme_stylebox_override(prop) or ctrl.get_theme_stylebox(prop) != sb:
+		ctrl.add_theme_stylebox_override(prop, sb)
+
+
+func _set_color(ctrl: Control, prop: StringName, col: Color) -> void:
+	if not ctrl.has_theme_color_override(prop) or ctrl.get_theme_color(prop) != col:
+		ctrl.add_theme_color_override(prop, col)
+
+
+func _set_fsize(ctrl: Control, sz: int) -> void:
+	if not ctrl.has_theme_font_size_override(&"font_size") or ctrl.get_theme_font_size(&"font_size") != sz:
+		ctrl.add_theme_font_size_override(&"font_size", sz)
+
+
 func _wire_controls() -> void:
 	if not world_overlay.draw.is_connected(_draw_world_overlay):
 		world_overlay.draw.connect(_draw_world_overlay)
 
-	# Wave plate click & hover
 	wave_plate.mouse_entered.connect(func(): _wave_hovered = true)
 	wave_plate.mouse_exited.connect(func(): _wave_hovered = false)
 	wave_plate.gui_input.connect(_on_wave_plate_input)
 
-	# Commander plate click & hover
 	cmd_plate.mouse_entered.connect(func(): _cmd_hovered = true)
 	cmd_plate.mouse_exited.connect(func(): _cmd_hovered = false)
 	cmd_plate.gui_input.connect(_on_cmd_plate_input)
 
-	# Bottom-left toolbar buttons
 	pause_btn.pressed.connect(func():
 		if main_ref != null:
 			main_ref.call("toggle_pause")
@@ -299,7 +330,6 @@ func _wire_controls() -> void:
 			)
 			_bind_hover_tip(bb, func() -> String: return "F%d · %s" % [idx + 1, bnm])
 
-	# Bottom-right toolbar buttons
 	follow_btn.pressed.connect(func():
 		if main_ref != null:
 			main_ref.call("cam_reset")
@@ -317,12 +347,17 @@ func _wire_controls() -> void:
 	)
 	_bind_hover_tip(zoom_in_btn, func() -> String: return "Zoom in (+)")
 
-	# Build popup tower cards
 	_build_cards.clear()
+	_build_tower_icons.clear()
+	_build_cost_icons.clear()
+	_build_cost_labels.clear()
 	for i in range(CWTowers.TOWER_KINDS.size()):
 		var card := build_menu.find_child("BuildBtn_%d" % i, true, false) as PanelContainer
 		if card != null:
 			_build_cards.append(card)
+			_build_tower_icons.append(card.find_child("TowerIcon", true, false) as TextureRect)
+			_build_cost_icons.append(card.find_child("CostIcon", true, false) as TextureRect)
+			_build_cost_labels.append(card.find_child("CostLabel", true, false) as Label)
 			var knd: String = CWTowers.TOWER_KINDS[i]
 			card.mouse_entered.connect(func(): _hovered_build_kind = knd)
 			card.mouse_exited.connect(func():
@@ -338,7 +373,6 @@ func _wire_controls() -> void:
 						card.accept_event()
 			)
 
-	# Upgrade popup stars & buttons
 	_star_icons.clear()
 	for i in range(3):
 		var st := upgrade_menu.find_child("Star%d" % i, true, false) as TextureRect
@@ -451,26 +485,16 @@ func _build_terrain_ring_mesh(cx: float, cz: float, radius: float, width: float,
 	for i in range(segs):
 		var a0 := TAU * float(i) / float(segs)
 		var a1 := TAU * float(i + 1) / float(segs)
-		var c0 := cos(a0)
-		var s0 := sin(a0)
-		var c1 := cos(a1)
-		var s1 := sin(a1)
-		var x00 := cx + c0 * r0
-		var z00 := cz + s0 * r0
-		var x01 := cx + c0 * r1
-		var z01 := cz + s0 * r1
-		var x10 := cx + c1 * r0
-		var z10 := cz + s1 * r0
-		var x11 := cx + c1 * r1
-		var z11 := cz + s1 * r1
-		var y00 := maxf(game.terrain.height_at(x00, z00), min_y) + 0.12
-		var y01 := maxf(game.terrain.height_at(x01, z01), min_y) + 0.12
-		var y10 := maxf(game.terrain.height_at(x10, z10), min_y) + 0.12
-		var y11 := maxf(game.terrain.height_at(x11, z11), min_y) + 0.12
-		var p0 := Vector3(x00, y00, z00)
-		var p1 := Vector3(x01, y01, z01)
-		var p2 := Vector3(x11, y11, z11)
-		var p3 := Vector3(x10, y10, z10)
+		var c0 := cos(a0); var s0 := sin(a0)
+		var c1 := cos(a1); var s1 := sin(a1)
+		var x00 := cx + c0 * r0; var z00 := cz + s0 * r0
+		var x01 := cx + c0 * r1; var z01 := cz + s0 * r1
+		var x10 := cx + c1 * r0; var z10 := cz + s1 * r0
+		var x11 := cx + c1 * r1; var z11 := cz + s1 * r1
+		var p0 := Vector3(x00, maxf(game.terrain.height_at(x00, z00), min_y) + 0.12, z00)
+		var p1 := Vector3(x01, maxf(game.terrain.height_at(x01, z01), min_y) + 0.12, z01)
+		var p2 := Vector3(x11, maxf(game.terrain.height_at(x11, z11), min_y) + 0.12, z11)
+		var p3 := Vector3(x10, maxf(game.terrain.height_at(x10, z10), min_y) + 0.12, z10)
 		verts[vi] = p0; verts[vi + 1] = p1; verts[vi + 2] = p2
 		verts[vi + 3] = p0; verts[vi + 4] = p2; verts[vi + 5] = p3
 		vi += 6
@@ -562,7 +586,6 @@ func is_point_on_hud(pos: Vector2) -> bool:
 	return false
 
 
-
 func on_mouse_tap(pos: Vector2, picked_pad) -> bool:
 	mouse_pos = pos
 	mouse_inside = true
@@ -584,7 +607,6 @@ func on_mouse_tap(pos: Vector2, picked_pad) -> bool:
 		armed_kind = ""
 		return true
 	return false
-
 
 
 func select_pad(pad) -> void:
@@ -619,24 +641,25 @@ func press_sell_key() -> void:
 func spawn_hud_coins(world_pos: Vector3, bounty: int, is_boss: bool) -> void:
 	if cam_ref == null or sub_vp_ref == null:
 		return
-	if hud_coins.size() >= 70:
+	if _hc_cnt >= MAX_HUD_COINS:
 		gold_shown = minf(float(game.gold), gold_shown + float(bounty))
 		return
 	var sp := _proj_world(world_pos)
 	var n := 18 if is_boss else clampi(int(floorf(float(bounty) / 3.0)), 1, 5)
 	var val_each := float(bounty) / float(maxi(1, n))
+	var sf := float(ui_s)
 	for _i in range(n):
-		if hud_coins.size() >= 70:
+		if _hc_cnt >= MAX_HUD_COINS:
 			break
-		hud_coins.append({
-			"sx": sp.x + randf_range(-10.0, 10.0),
-			"sy": sp.y + randf_range(-8.0, 8.0),
-			"cx": sp.x + randf_range(-60.0, 60.0) * float(ui_s),
-			"cy": sp.y - randf_range(30.0, 70.0) * float(ui_s),
-			"t": 0.0,
-			"dur": randf_range(0.55, 0.8),
-			"val": val_each,
-		})
+		var idx := _hc_cnt
+		_hc_cnt += 1
+		_hc_sx[idx] = sp.x + randf_range(-10.0, 10.0)
+		_hc_sy[idx] = sp.y + randf_range(-8.0, 8.0)
+		_hc_cx[idx] = sp.x + randf_range(-60.0, 60.0) * sf
+		_hc_cy[idx] = sp.y - randf_range(30.0, 70.0) * sf
+		_hc_t[idx] = 0.0
+		_hc_dur[idx] = randf_range(0.55, 0.8)
+		_hc_val[idx] = val_each
 
 
 func show_banner(text: String, dur: float, is_boss: bool) -> void:
@@ -646,6 +669,7 @@ func show_banner(text: String, dur: float, is_boss: bool) -> void:
 	banner_big = is_boss
 
 
+# --- Per-frame update ---
 func update_ui(dt: float) -> void:
 	var win_sz := get_viewport().get_visible_rect().size
 	ui_s = maxi(2, int(roundf(win_sz.y / 430.0)))
@@ -677,21 +701,26 @@ func update_ui(dt: float) -> void:
 		armed_kind = ""
 		hovered_pad = null
 
-	# Smooth coin-driven gold readout
 	if gold_shown > float(game.gold):
 		gold_shown = float(game.gold)
-	if hud_coins.is_empty() and gold_shown < float(game.gold):
+	if _hc_cnt == 0 and gold_shown < float(game.gold):
 		gold_shown = minf(float(game.gold), gold_shown + maxf(1.0, (float(game.gold) - gold_shown) * 6.0 * dt))
 
-	var hci := hud_coins.size() - 1
-	while hci >= 0:
-		hud_coins[hci]["t"] = float(hud_coins[hci]["t"]) + dt
-		if float(hud_coins[hci]["t"]) >= float(hud_coins[hci]["dur"]):
-			gold_shown = minf(float(game.gold), gold_shown + float(hud_coins[hci]["val"]))
-			hud_coins.remove_at(hci)
+	var hci := 0
+	while hci < _hc_cnt:
+		var t_next := _hc_t[hci] + dt
+		if t_next >= _hc_dur[hci]:
+			gold_shown = minf(float(game.gold), gold_shown + _hc_val[hci])
 			gold_bump = 1.0
 			audio.play_sfx("coin", 0.30)
-		hci -= 1
+			_hc_cnt -= 1
+			if hci < _hc_cnt:
+				_hc_sx[hci] = _hc_sx[_hc_cnt]; _hc_sy[hci] = _hc_sy[_hc_cnt]
+				_hc_cx[hci] = _hc_cx[_hc_cnt]; _hc_cy[hci] = _hc_cy[_hc_cnt]
+				_hc_t[hci] = _hc_t[_hc_cnt]; _hc_dur[hci] = _hc_dur[_hc_cnt]; _hc_val[hci] = _hc_val[_hc_cnt]
+		else:
+			_hc_t[hci] = t_next
+			hci += 1
 
 	if banner_dur > 0.0:
 		banner_t += dt
@@ -706,7 +735,10 @@ func update_ui(dt: float) -> void:
 	elif not tip_queue.is_empty() and title_t > 7.5:
 		active_tip = {"type": tip_queue.pop_front(), "t": 0.0}
 
-	_sync_hud_controls(lw, lh)
+	var top_bottom := _sync_top_bars(lw)
+	var y_up := _sync_bottom_toolbar(lw, lh)
+	_sync_popups(lw, lh, top_bottom)
+	_sync_overlays(lw, lh, top_bottom, y_up)
 	_update_3d_rings(dt)
 
 	if is_panning:
@@ -715,35 +747,33 @@ func update_ui(dt: float) -> void:
 		var pointer := hovered_pad != null and game.phase == "play"
 		DisplayServer.cursor_set_shape(DisplayServer.CURSOR_POINTING_HAND if pointer else DisplayServer.CURSOR_ARROW)
 
-	world_overlay.queue_redraw()
+	var has_overlay := _hc_cnt > 0 or not game.monsters_sys.mons.is_empty() or not game.towers_sys.footmen.is_empty()
+	if has_overlay or _overlay_was_dirty:
+		world_overlay.queue_redraw()
+		_overlay_was_dirty = has_overlay
 
 
-func _sync_hud_controls(lw: float, lh: float) -> void:
-	# 1. Top-left Stats Plate
+func _sync_top_bars(lw: float) -> float:
 	lives_label.text = str(game.lives)
-	lives_label.add_theme_color_override("font_color", COL_RED if hurt_t > 0.0 else COL_TX)
+	_set_color(lives_label, &"font_color", COL_RED if hurt_t > 0.0 else COL_TX)
 	flame_icon.modulate.a = 0.55 + 0.45 * (float(game.lives) / float(maxi(1, game.max_lives)))
 	gold_label.text = str(int(floorf(gold_shown)))
-	gold_label.add_theme_color_override("font_color", COL_RED if deny_t > 0.0 else (COL_GOLD_HI if gold_bump > 0.0 else COL_TX))
+	_set_color(gold_label, &"font_color", COL_RED if deny_t > 0.0 else (COL_GOLD_HI if gold_bump > 0.0 else COL_TX))
 	slain_label.text = str(game.slain)
-	slain_label.add_theme_color_override("font_color", Color.WHITE if slain_bump > 0.5 else COL_TX)
-	stats_plate.add_theme_stylebox_override("panel", _sb_plate_hurt if hurt_t > 0.0 else _sb_plate)
+	_set_color(slain_label, &"font_color", Color.WHITE if slain_bump > 0.5 else COL_TX)
+	_set_style(stats_plate, &"panel", _sb_plate_hurt if hurt_t > 0.0 else _sb_plate)
 	gold_icon_pos = coin_icon.get_global_rect().get_center()
 
 	if show_perf:
 		perf_plate.position = Vector2(5.0, stats_plate.position.y + stats_plate.size.y + 4.0)
 
-	# 2. Top-center Wave Plate
 	wave_title_lbl.text = "Wave %d" % maxi(1, game.wave_number())
 	var can_call := game.phase == "play" and not game.spawning and not game.boss_wave and game.next_in > 0.4
 	var wave_hot := can_call and _wave_hovered
 	var frac := -1.0
 	if game.phase == "play":
 		if not game.spawning and not game.boss_wave and game.next_in > 0.0:
-			if wave_hot:
-				wave_sub_lbl.text = "Call now · +%d" % int(roundf(game.next_in * 3.0))
-			else:
-				wave_sub_lbl.text = "Next wave in %d" % maxi(1, int(ceilf(game.next_in)))
+			wave_sub_lbl.text = ("Call now · +%d" % int(roundf(game.next_in * 3.0))) if wave_hot else ("Next wave in %d" % maxi(1, int(ceilf(game.next_in))))
 			frac = 1.0 - game.next_in / 6.5
 		else:
 			wave_sub_lbl.text = "%d on the road" % (game.monsters_sys.mons.size() + game.queue.size())
@@ -756,18 +786,18 @@ func _sync_hud_controls(lw: float, lh: float) -> void:
 	wave_progress.visible = frac >= 0.0
 	if frac >= 0.0:
 		wave_progress.value = clampf(frac, 0.0, 1.0)
-	wave_plate.add_theme_stylebox_override("panel", _sb_plate_hover if wave_hot else _sb_plate)
+	_set_style(wave_plate, &"panel", _sb_plate_hover if wave_hot else _sb_plate)
 	wave_plate.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if can_call else Control.CURSOR_ARROW
 
-	# 3. Top-right Commander Plate
 	var you := not game.ai_commander
-	cmd_icon.texture = icons.get("hand" if you else "helm", null)
+	var cmd_tex: Texture2D = icons.get("hand" if you else "helm", null)
+	if cmd_icon.texture != cmd_tex:
+		cmd_icon.texture = cmd_tex
 	cmd_title_lbl.text = "You command" if you else "AI commander"
-	cmd_title_lbl.add_theme_color_override("font_color", COL_AMBER if you else COL_TX)
+	_set_color(cmd_title_lbl, &"font_color", COL_AMBER if you else COL_TX)
 	cmd_sub_lbl.text = "Click here for the AI" if you else "Click a pad to take over"
-	cmd_plate.add_theme_stylebox_override("panel", _sb_plate_hover if _cmd_hovered else (_sb_plate_hi if you else _sb_plate))
+	_set_style(cmd_plate, &"panel", _sb_plate_hover if _cmd_hovered else (_sb_plate_hi if you else _sb_plate))
 
-	# Anti-overlap positioning for top plates
 	var stats_r := stats_plate.position.x + stats_plate.size.x
 	var cmd_x := lw - cmd_plate.size.x - 5.0
 	var cmd_y := 5.0
@@ -779,38 +809,42 @@ func _sync_hud_controls(lw: float, lh: float) -> void:
 	if wave_x < stats_r + 3.0 or (cmd_y == 5.0 and wave_x + wave_plate.size.x > cmd_x - 3.0) or cmd_y != 5.0:
 		wave_y = maxf(5.0 + stats_plate.size.y, cmd_y + (cmd_plate.size.y if (cmd_y == 5.0 or wave_x + wave_plate.size.x > cmd_x - 3.0) else 0.0)) + 3.0
 	wave_plate.position = Vector2(wave_x, wave_y)
-	var top_bottom := maxf(5.0 + stats_plate.size.y, maxf(cmd_y + cmd_plate.size.y, wave_y + wave_plate.size.y))
+	return maxf(5.0 + stats_plate.size.y, maxf(cmd_y + cmd_plate.size.y, wave_y + wave_plate.size.y))
 
-	# 4. Bottom toolbar state
-	pause_btn.icon = icons.get("play" if game.paused else "pause", null)
-	pause_btn.add_theme_stylebox_override("normal", _sb_btn_on if game.paused else _sb_btn_normal)
+
+func _sync_bottom_toolbar(lw: float, lh: float) -> float:
+	var p_tex: Texture2D = icons.get("play" if game.paused else "pause", null)
+	if pause_btn.icon != p_tex:
+		pause_btn.icon = p_tex
+	_set_style(pause_btn, &"normal", _sb_btn_on if game.paused else _sb_btn_normal)
 	speed_btn.text = "%dx" % game.speed
-	speed_btn.add_theme_color_override("font_color", COL_AMBER if game.speed > 1 else COL_TX)
-	speed_btn.add_theme_stylebox_override("normal", _sb_btn_on if game.speed > 1 else _sb_btn_normal)
-	sound_btn.icon = icons.get("mute" if audio.muted else "sound", null)
+	_set_color(speed_btn, &"font_color", COL_AMBER if game.speed > 1 else COL_TX)
+	_set_style(speed_btn, &"normal", _sb_btn_on if game.speed > 1 else _sb_btn_normal)
+	var s_tex: Texture2D = icons.get("mute" if audio.muted else "sound", null)
+	if sound_btn.icon != s_tex:
+		sound_btn.icon = s_tex
 
-	var cur_bname: String = String(game.terrain.bio.get("name", "Ashen Pass"))
+	var cur_bname := String(game.terrain.bio.get("name", "Ashen Pass"))
 	biome_btn.text = cur_bname
-	biome_btn.add_theme_color_override("font_color", COL_AMBER if biome_picker_open else COL_TX)
-	biome_btn.add_theme_stylebox_override("normal", _sb_btn_on if biome_picker_open else _sb_btn_normal)
+	_set_color(biome_btn, &"font_color", COL_AMBER if biome_picker_open else COL_TX)
+	_set_style(biome_btn, &"normal", _sb_btn_on if biome_picker_open else _sb_btn_normal)
 	biome_picker.visible = biome_picker_open
 	if biome_picker_open:
-		var cur_key: String = String(game.terrain.bio.get("key", ""))
+		var cur_key := String(game.terrain.bio.get("key", ""))
 		for bi in range(_bio_btns.size()):
 			var is_cur := String(CWBiome.BIOMES[bi]["key"]) == cur_key
-			_bio_btns[bi].add_theme_color_override("font_color", COL_AMBER if is_cur else COL_TX)
-			_bio_btns[bi].add_theme_stylebox_override("normal", _sb_plate_hover if is_cur else _sb_btn_normal)
+			_set_color(_bio_btns[bi], &"font_color", COL_AMBER if is_cur else COL_TX)
+			_set_style(_bio_btns[bi], &"normal", _sb_plate_hover if is_cur else _sb_btn_normal)
 		var b_pos := biome_btn.get_global_rect().position / float(ui_s)
 		biome_picker.position = Vector2(b_pos.x, b_pos.y - biome_picker.size.y - 3.0)
 
 	var cur_z := float(main_ref.call("cam_zoom_now")) if main_ref != null else 1.0
 	var min_z := float(main_ref.call("cam_zoom_min")) if main_ref != null else 0.5
-	zoom_in_btn.add_theme_color_override("font_color", COL_TX if cur_z < 2.99 else COL_DIM_BTN)
-	zoom_out_btn.add_theme_color_override("font_color", COL_TX if cur_z > min_z + 0.01 else COL_DIM_BTN)
+	_set_color(zoom_in_btn, &"font_color", COL_TX if cur_z < 2.99 else COL_DIM_BTN)
+	_set_color(zoom_out_btn, &"font_color", COL_TX if cur_z > min_z + 0.01 else COL_DIM_BTN)
 	var is_man := bool(main_ref.get("cam_man")) if main_ref != null else false
 	follow_btn.visible = is_man and (game.phase == "play" or game.phase == "defeat")
 
-	# Toolbar hover tooltip
 	var y_up := lh - 5.0 - pause_btn.size.y - 3.0
 	if _hovered_tip_ctrl != null and _hovered_tip_ctrl.is_visible_in_tree() and not is_panning and _hovered_tip_text != "":
 		tooltip_label.text = _hovered_tip_text
@@ -823,14 +857,93 @@ func _sync_hud_controls(lw: float, lh: float) -> void:
 		y_up = minf(y_up, ty - 3.0)
 	else:
 		tooltip_plate.visible = false
+	return y_up
 
-	# Paused banner
+
+func _sync_popups(lw: float, lh: float, top_bottom: float) -> void:
+	if selected_pad == null or game.phase != "play":
+		build_menu.visible = false
+		upgrade_menu.visible = false
+		return
+
+	var tower = selected_pad["tower"]
+	var top_off := minf(3.6, float(tower.get("top_y", 2.0))) if tower != null else 1.2
+	var p := _proj_world(Vector3(selected_pad["x"], float(selected_pad["y"]) + top_off, selected_pad["z"])) / float(ui_s)
+	var ma := clampf(menu_t * 8.0, 0.0, 1.0)
+	if tower == null:
+		upgrade_menu.visible = false
+		build_menu.visible = true
+		build_menu.modulate.a = ma
+		for i in range(_build_cards.size()):
+			var knd: String = CWTowers.TOWER_KINDS[i]
+			var cost := int(CWTowers.DEFS[knd]["cost"][0])
+			var can := game.gold >= cost
+			var lit := (_hovered_build_kind == knd)
+			_set_style(_build_cards[i], &"panel", _sb_card_lit if lit else (_sb_card_normal if can else _sb_card_dim))
+			if _build_tower_icons[i] != null:
+				_build_tower_icons[i].modulate.a = 1.0 if can else 0.45
+			if _build_cost_icons[i] != null:
+				_build_cost_icons[i].modulate.a = 1.0 if can else 0.5
+			if _build_cost_labels[i] != null:
+				_build_cost_labels[i].text = str(cost)
+				_set_color(_build_cost_labels[i], &"font_color", COL_AMBER if can else COL_RED)
+		if _hovered_build_kind != "":
+			var dl: Array = TOWER_DESC_LINES[_hovered_build_kind]
+			build_desc_title.text = String(CWTowers.DEFS[_hovered_build_kind]["name"])
+			_set_color(build_desc_title, &"font_color", COL_TX)
+			build_desc_l1.text = String(dl[0])
+			build_desc_l2.text = String(dl[1])
+		else:
+			build_desc_title.text = "Choose a tower"
+			_set_color(build_desc_title, &"font_color", COL_DIM)
+			build_desc_l1.text = "Hover or press 1 to 4"
+			build_desc_l2.text = "to see what each does."
+		var bx := clampf(roundf(p.x - build_menu.size.x * 0.5), 4.0, lw - build_menu.size.x - 4.0)
+		var by := clampf(roundf(p.y - build_menu.size.y - 7.0), minf(top_bottom + 4.0, lh - build_menu.size.y - 4.0), lh - build_menu.size.y - 4.0)
+		build_menu.position = Vector2(bx, by)
+	else:
+		build_menu.visible = false
+		upgrade_menu.visible = true
+		upgrade_menu.modulate.a = ma
+		var d: Dictionary = tower["def"]
+		var lvl := int(tower["lvl"])
+		var maxed := lvl >= 2
+		var upc := 0 if maxed else int(d["cost"][lvl + 1])
+		var can_up := (not maxed) and game.gold >= upc and String(tower["state"]) == "active"
+		var refund := int(roundf(float(tower["spent"]) * 0.7))
+		upgrade_name_lbl.text = String(d["name"])
+		for si in range(_star_icons.size()):
+			var st_tex: Texture2D = icons.get("star" if si <= lvl else "starEmpty", null)
+			if _star_icons[si].texture != st_tex:
+				_star_icons[si].texture = st_tex
+		var is_guard := String(tower["kind"]) == "guard"
+		upgrade_stats_lbl.text = ("%d footmen · %d health" % [int(d["n"][lvl]), int(d["hp"][lvl])]) if is_guard else ("Range %.1f · Damage %d" % [float(d["range"][lvl]), int(d["dmg"][lvl])])
+		if maxed:
+			upgrade_next_lbl.text = "%d kills" % int(tower.get("kills", 0))
+		elif is_guard:
+			upgrade_next_lbl.text = "Next: %d footmen · %d health" % [int(d["n"][lvl + 1]), int(d["hp"][lvl + 1])]
+		else:
+			upgrade_next_lbl.text = "Next: range %.1f · damage %d" % [float(d["range"][lvl + 1]), int(d["dmg"][lvl + 1])]
+		_set_color(upgrade_next_lbl, &"font_color", COL_DIM if maxed else COL_AMBER)
+
+		upgrade_btn.text = "Max level" if maxed else ("Upgrade %d" % upc)
+		_set_color(upgrade_btn, &"font_color", COL_TX if can_up else (COL_DIM if maxed else COL_RED))
+		_set_style(upgrade_btn, &"normal", _sb_card_normal if can_up else _sb_card_dim)
+		sell_btn.text = ("Confirm +%d" % refund) if sell_armed else ("Sell +%d" % refund)
+		_set_color(sell_btn, &"font_color", COL_RED if sell_armed else COL_TX)
+		_set_style(sell_btn, &"normal", _sb_btn_sell_armed if sell_armed else _sb_card_normal)
+
+		var ux := clampf(roundf(p.x - upgrade_menu.size.x * 0.5), 4.0, lw - upgrade_menu.size.x - 4.0)
+		var uy := clampf(roundf(p.y - upgrade_menu.size.y - 7.0), minf(top_bottom + 4.0, lh - upgrade_menu.size.y - 4.0), lh - upgrade_menu.size.y - 4.0)
+		upgrade_menu.position = Vector2(ux, uy)
+
+
+func _sync_overlays(lw: float, lh: float, top_bottom: float, y_up: float) -> void:
 	paused_plate.visible = game.paused
 	if game.paused:
 		paused_plate.position = Vector2(roundf((lw - paused_plate.size.x) * 0.5), y_up - paused_plate.size.y)
 		y_up -= paused_plate.size.y + 3.0
 
-	# Bottom controls hint
 	var hint_a := clampf(minf(title_t - 7.2, 3.0 - (moved_t if idle_t > 20.0 else 0.0) + (8.0 if title_t < 18.0 else 0.0)), 0.0, 1.0)
 	var show_hint := hint_a > 0.02 and selected_pad == null and not game.paused and hint_plate.size.x < lw - 10.0
 	hint_plate.visible = show_hint
@@ -838,101 +951,19 @@ func _sync_hud_controls(lw: float, lh: float) -> void:
 		hint_plate.modulate.a = hint_a
 		hint_plate.position = Vector2(roundf((lw - hint_plate.size.x) * 0.5), y_up - hint_plate.size.y)
 
-	# Wave / Boss banner
 	var show_banner_now := false
 	if banner_dur > 0.0 and not banner_text.is_empty():
 		var ba := clampf(minf(banner_t * 3.0, (banner_dur - banner_t) * 2.0), 0.0, 1.0)
 		if ba > 0.01:
 			show_banner_now = true
 			banner_label.text = banner_text
-			banner_label.add_theme_font_size_override("font_size", 27 if banner_big else 18)
-			banner_label.add_theme_color_override("font_color", COL_BANNER_BIG if banner_big else COL_TX)
-			banner_plate.add_theme_stylebox_override("panel", _sb_plate_ember if banner_big else _sb_plate_hi)
+			_set_fsize(banner_label, 27 if banner_big else 18)
+			_set_color(banner_label, &"font_color", COL_BANNER_BIG if banner_big else COL_TX)
+			_set_style(banner_plate, &"panel", _sb_plate_ember if banner_big else _sb_plate_hi)
 			banner_plate.modulate.a = ba
-			var yb := maxf(roundf(lh * 0.2), top_bottom + 4.0)
-			banner_plate.position = Vector2(roundf((lw - banner_plate.size.x) * 0.5), yb)
+			banner_plate.position = Vector2(roundf((lw - banner_plate.size.x) * 0.5), maxf(roundf(lh * 0.2), top_bottom + 4.0))
 	banner_plate.visible = show_banner_now
 
-	# Build / Upgrade popup menus
-	if selected_pad != null and game.phase == "play":
-		var tower = selected_pad["tower"]
-		var top_off := minf(3.6, float(tower.get("top_y", 2.0))) if tower != null else 1.2
-		var p := _proj_world(Vector3(selected_pad["x"], float(selected_pad["y"]) + top_off, selected_pad["z"])) / float(ui_s)
-		var ma := clampf(menu_t * 8.0, 0.0, 1.0)
-		if tower == null:
-			upgrade_menu.visible = false
-			build_menu.visible = true
-			build_menu.modulate.a = ma
-			var show_k := _hovered_build_kind
-			for i in range(_build_cards.size()):
-				var knd: String = CWTowers.TOWER_KINDS[i]
-				var cost := int(CWTowers.DEFS[knd]["cost"][0])
-				var can := game.gold >= cost
-				var lit := (_hovered_build_kind == knd)
-				var card := _build_cards[i]
-				card.add_theme_stylebox_override("panel", _sb_card_lit if lit else (_sb_card_normal if can else _sb_card_dim))
-				var t_ic := card.find_child("TowerIcon", true, false) as TextureRect
-				var c_ic := card.find_child("CostIcon", true, false) as TextureRect
-				var c_lb := card.find_child("CostLabel", true, false) as Label
-				if t_ic != null:
-					t_ic.modulate.a = 1.0 if can else 0.45
-				if c_ic != null:
-					c_ic.modulate.a = 1.0 if can else 0.5
-				if c_lb != null:
-					c_lb.text = str(cost)
-					c_lb.add_theme_color_override("font_color", COL_AMBER if can else COL_RED)
-			if show_k != "":
-				var dl: Array = TOWER_DESC_LINES[show_k]
-				build_desc_title.text = String(CWTowers.DEFS[show_k]["name"])
-				build_desc_title.add_theme_color_override("font_color", COL_TX)
-				build_desc_l1.text = String(dl[0])
-				build_desc_l2.text = String(dl[1])
-			else:
-				build_desc_title.text = "Choose a tower"
-				build_desc_title.add_theme_color_override("font_color", COL_DIM)
-				build_desc_l1.text = "Hover or press 1 to 4"
-				build_desc_l2.text = "to see what each does."
-			var bx := clampf(roundf(p.x - build_menu.size.x * 0.5), 4.0, lw - build_menu.size.x - 4.0)
-			var by := clampf(roundf(p.y - build_menu.size.y - 7.0), minf(top_bottom + 4.0, lh - build_menu.size.y - 4.0), lh - build_menu.size.y - 4.0)
-			build_menu.position = Vector2(bx, by)
-		else:
-			build_menu.visible = false
-			upgrade_menu.visible = true
-			upgrade_menu.modulate.a = ma
-			var d: Dictionary = tower["def"]
-			var lvl := int(tower["lvl"])
-			var maxed := lvl >= 2
-			var upc := 0 if maxed else int(d["cost"][lvl + 1])
-			var can_up := (not maxed) and game.gold >= upc and String(tower["state"]) == "active"
-			var refund := int(roundf(float(tower["spent"]) * 0.7))
-			upgrade_name_lbl.text = String(d["name"])
-			for si in range(_star_icons.size()):
-				_star_icons[si].texture = icons.get("star" if si <= lvl else "starEmpty", null)
-			var kills_n := int(tower.get("kills", 0))
-			upgrade_stats_lbl.text = ("%d footmen · %d health" % [int(d["n"][lvl]), int(d["hp"][lvl])]) if String(tower["kind"]) == "guard" else ("Range %.1f · Damage %d" % [float(d["range"][lvl]), int(d["dmg"][lvl])])
-			if maxed:
-				upgrade_next_lbl.text = "%d kills" % kills_n
-			elif String(tower["kind"]) == "guard":
-				upgrade_next_lbl.text = "Next: %d footmen · %d health" % [int(d["n"][lvl + 1]), int(d["hp"][lvl + 1])]
-			else:
-				upgrade_next_lbl.text = "Next: range %.1f · damage %d" % [float(d["range"][lvl + 1]), int(d["dmg"][lvl + 1])]
-			upgrade_next_lbl.add_theme_color_override("font_color", COL_DIM if maxed else COL_AMBER)
-
-			upgrade_btn.text = "Max level" if maxed else ("Upgrade %d" % upc)
-			upgrade_btn.add_theme_color_override("font_color", COL_TX if can_up else (COL_DIM if maxed else COL_RED))
-			upgrade_btn.add_theme_stylebox_override("normal", _sb_card_normal if can_up else _sb_card_dim)
-			sell_btn.text = ("Confirm +%d" % refund) if sell_armed else ("Sell +%d" % refund)
-			sell_btn.add_theme_color_override("font_color", COL_RED if sell_armed else COL_TX)
-			sell_btn.add_theme_stylebox_override("normal", _sb_btn_sell_armed if sell_armed else _sb_card_normal)
-
-			var ux := clampf(roundf(p.x - upgrade_menu.size.x * 0.5), 4.0, lw - upgrade_menu.size.x - 4.0)
-			var uy := clampf(roundf(p.y - upgrade_menu.size.y - 7.0), minf(top_bottom + 4.0, lh - upgrade_menu.size.y - 4.0), lh - upgrade_menu.size.y - 4.0)
-			upgrade_menu.position = Vector2(ux, uy)
-	else:
-		build_menu.visible = false
-		upgrade_menu.visible = false
-
-	# Armed tower cursor tooltip
 	if armed_kind != "" and mouse_inside and game.phase == "play":
 		armed_label.text = "%s: click a pad" % String(CWTowers.DEFS[armed_kind]["name"])
 		armed_plate.visible = true
@@ -944,29 +975,27 @@ func _sync_hud_controls(lw: float, lh: float) -> void:
 	else:
 		armed_plate.visible = false
 
-	# New Monster / Boss 5.2s tip card
 	var show_tip := false
 	if not active_tip.is_empty() and selected_pad == null:
-		var mtype: String = String(active_tip["type"])
-		var tt: float = float(active_tip["t"])
+		var mtype := String(active_tip["type"])
+		var tt := float(active_tip["t"])
 		var tip_a := clampf(minf(tt * 4.0, (5.2 - tt) * 2.0), 0.0, 1.0)
 		if tip_a > 0.01 and CWMonsters.DEFS.has(mtype):
 			show_tip = true
 			var md: Dictionary = CWMonsters.DEFS[mtype]
 			tip_head_lbl.text = "%s: %s" % ["Boss" if bool(md.get("boss", false)) else "New", String(md.get("name", mtype))]
 			tip_body_lbl.text = String(md.get("tip", ""))
-			tip_plate.add_theme_stylebox_override("panel", _sb_plate_hi if bool(md.get("boss", false)) else _sb_plate)
+			_set_style(tip_plate, &"panel", _sb_plate_hi if bool(md.get("boss", false)) else _sb_plate)
 			tip_plate.modulate.a = tip_a
 			tip_plate.position = Vector2(roundf((lw - tip_plate.size.x) * 0.5), lh - tip_plate.size.y - pause_btn.size.y - 10.0)
 	tip_plate.visible = show_tip
 
-	# Opening title card (first 7s)
 	var show_title := false
 	if title_t < 7.0 and selected_pad == null:
 		var ta := clampf(minf((title_t - 0.4) * 1.5, (6.6 - title_t) * 1.2), 0.0, 1.0)
 		if ta > 0.01:
 			show_title = true
-			title_sub_lbl.text = "%s · The commander plays until you take over." % cur_bname
+			title_sub_lbl.text = "%s · The commander plays until you take over." % String(game.terrain.bio.get("name", "Ashen Pass"))
 			var has_best := game.best_wave > 5
 			title_best_lbl.visible = has_best
 			if has_best:
@@ -987,8 +1016,7 @@ func _update_3d_rings(dt: float) -> void:
 		if pad_key != _ring_pad_key:
 			_ring_pad_key = pad_key
 			ring_pad.mesh = _build_terrain_ring_mesh(px, pz, 1.5, 0.10, 40, py + 0.02)
-		var pulse := 0.5 + 0.5 * sin(_ring_time * 5.0)
-		ring_pad_mat.albedo_color.a = 0.45 + 0.25 * pulse
+		ring_pad_mat.albedo_color.a = 0.45 + 0.25 * (0.5 + 0.5 * sin(_ring_time * 5.0))
 		ring_pad.visible = true
 
 		var t = focus_pad["tower"]
@@ -1025,7 +1053,7 @@ func _draw_world_overlay() -> void:
 
 	var sf := float(ui_s)
 	var pix := maxf(1.0, roundf(H / vp_sz.y))
-	var col_man := Color(0.498, 0.714, 0.918, 1.0)
+	var col_man := Color(0.498, 0.714, 0.918, 0.95)
 	var col_hi := Color(0.851, 0.631, 0.235, 1.0)
 	var col_mid := Color(0.878, 0.463, 0.173, 1.0)
 	var col_lo := Color(0.878, 0.290, 0.196, 1.0)
@@ -1033,7 +1061,7 @@ func _draw_world_overlay() -> void:
 	for m: CWMonsterUnit in game.monsters_sys.mons:
 		if m.dead or m.dying > 0.0:
 			continue
-		var is_boss := bool(m.def.get("boss", false))
+		var is_boss := m.is_boss
 		if not is_boss and m.hp >= m.max_hp * 0.999:
 			continue
 		var f := clampf(m.hp / maxf(m.max_hp, 1.0), 0.0, 1.0)
@@ -1074,17 +1102,17 @@ func _draw_world_overlay() -> void:
 		var bx := roundf(sp.x - bw * 0.5)
 		var by := roundf(sp.y)
 		world_overlay.draw_rect(Rect2(bx - pix, by - pix, bw + 2.0 * pix, bh + 2.0 * pix), Color(COL_DARK.r, COL_DARK.g, COL_DARK.b, 0.95))
-		world_overlay.draw_rect(Rect2(bx, by, maxf(pix, roundf(bw * f)), bh), Color(col_man.r, col_man.g, col_man.b, 0.95))
+		world_overlay.draw_rect(Rect2(bx, by, maxf(pix, roundf(bw * f)), bh), col_man)
 
-	if icons.has("coin"):
+	if _hc_cnt > 0 and icons.has("coin"):
 		var coin_tex: Texture2D = icons["coin"]
 		var cs := float(maxi(2, ui_s - 1))
 		var cw := float(coin_tex.get_width()) * cs
 		var ch := float(coin_tex.get_height()) * cs
-		for qc in hud_coins:
-			var cu := clampf(float(qc["t"]) / float(qc["dur"]), 0.0, 1.0)
+		for i in range(_hc_cnt):
+			var cu := clampf(_hc_t[i] / _hc_dur[i], 0.0, 1.0)
 			var e := cu * cu * (3.0 - 2.0 * cu)
 			var a := 1.0 - e
-			var qx := a * a * float(qc["sx"]) + 2.0 * a * e * float(qc["cx"]) + e * e * gold_icon_pos.x
-			var qy := a * a * float(qc["sy"]) + 2.0 * a * e * float(qc["cy"]) + e * e * gold_icon_pos.y
+			var qx := a * a * _hc_sx[i] + 2.0 * a * e * _hc_cx[i] + e * e * gold_icon_pos.x
+			var qy := a * a * _hc_sy[i] + 2.0 * a * e * _hc_cy[i] + e * e * gold_icon_pos.y
 			world_overlay.draw_texture_rect(coin_tex, Rect2(roundf(qx - cw * 0.5), roundf(qy - ch * 0.5), cw, ch), false)

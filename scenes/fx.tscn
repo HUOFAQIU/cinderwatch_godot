@@ -1,0 +1,502 @@
+[gd_scene format=3 uid="uid://blfd0hha48ycw"]
+
+[ext_resource type="Script" uid="uid://bh701r2vi7mdg" path="res://scripts/fx.gd" id="1_46d7d"]
+[ext_resource type="Shader" uid="uid://b3cp0ewlk08fk" path="res://shaders/flame.gdshader" id="2_rhgu5"]
+[ext_resource type="Texture2D" uid="uid://ct20876m5atbg" path="res://assets/textures/particle_soft.png" id="3_kdmj4"]
+[ext_resource type="Shader" uid="uid://b03cxxtbt10nj" path="res://shaders/weather.gdshader" id="4_sup7a"]
+[ext_resource type="ArrayMesh" path="res://assets/models/fx/ring.res" id="5_j7sck"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_8stuq"]
+render_priority = 8
+shader = ExtResource("2_rhgu5")
+shader_parameter/u_seed = 1.3
+shader_parameter/u_intensity = 1.15
+shader_parameter/u_is_halo = 0.0
+shader_parameter/u_is_instanced = false
+shader_parameter/u_col = Vector3(1, 0.58, 0.22)
+
+[sub_resource type="QuadMesh" id="QuadMesh_8ufvo"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0l7m0"]
+render_priority = 8
+shader = ExtResource("2_rhgu5")
+shader_parameter/u_seed = 5.0
+shader_parameter/u_intensity = 1.15
+shader_parameter/u_is_halo = 0.0
+shader_parameter/u_is_instanced = false
+shader_parameter/u_col = Vector3(1, 0.58, 0.22)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_f4tek"]
+render_priority = 8
+shader = ExtResource("2_rhgu5")
+shader_parameter/u_seed = 8.700000000000001
+shader_parameter/u_intensity = 1.15
+shader_parameter/u_is_halo = 0.0
+shader_parameter/u_is_instanced = false
+shader_parameter/u_col = Vector3(1, 0.58, 0.22)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_6pgv8"]
+render_priority = 7
+shader = ExtResource("2_rhgu5")
+shader_parameter/u_seed = 0.0
+shader_parameter/u_intensity = 0.36
+shader_parameter/u_is_halo = 1.0
+shader_parameter/u_is_instanced = false
+shader_parameter/u_col = Vector3(1.25, 0.56, 0.16)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_v6185"]
+render_priority = 8
+shader = ExtResource("2_rhgu5")
+shader_parameter/u_seed = 11.0
+shader_parameter/u_intensity = 1.05
+shader_parameter/u_is_halo = 0.0
+shader_parameter/u_is_instanced = false
+shader_parameter/u_col = Vector3(1, 0.58, 0.22)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jcc5n"]
+render_priority = 8
+shader = ExtResource("2_rhgu5")
+shader_parameter/u_seed = 15.3
+shader_parameter/u_intensity = 1.05
+shader_parameter/u_is_halo = 0.0
+shader_parameter/u_is_instanced = false
+shader_parameter/u_col = Vector3(1, 0.58, 0.22)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bab6p"]
+transparency = 1
+depth_draw_mode = 2
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = ExtResource("3_kdmj4")
+billboard_mode = 1
+billboard_keep_scale = true
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_7eefj"]
+emission_shape = 3
+emission_box_extents = Vector3(0.45, 0.25, 0.45)
+direction = Vector3(0, 1, 0)
+spread = 28.0
+initial_velocity_min = 1.2
+initial_velocity_max = 2.6
+gravity = Vector3(0, 0.4, 0)
+scale_min = 0.08
+scale_max = 0.18
+color = Color(1.9, 0.82, 0.22, 0.92)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_3h1xg"]
+emission_shape = 3
+emission_box_extents = Vector3(0.85, 0.28, 0.25)
+direction = Vector3(0, 0.85, 0.45)
+spread = 35.0
+initial_velocity_min = 0.8
+initial_velocity_max = 1.8
+gravity = Vector3(0, -0.5, 0)
+scale_min = 0.26
+scale_max = 0.5
+color = Color(0.75, 0.85, 0.95, 0.52)
+
+[sub_resource type="MultiMesh" id="MultiMesh_70mu8"]
+transform_format = 1
+use_colors = true
+mesh = SubResource("QuadMesh_8ufvo")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2c286"]
+shading_mode = 0
+vertex_color_use_as_albedo = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_c3c1v"]
+
+[sub_resource type="MultiMesh" id="MultiMesh_3tgk7"]
+transform_format = 1
+use_colors = true
+mesh = SubResource("BoxMesh_c3c1v")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_s81n4"]
+render_priority = 4
+shader = ExtResource("4_sup7a")
+shader_parameter/u_fade = 1.0
+shader_parameter/u_focus_dist = 78.0
+shader_parameter/u_light_pos = PackedVector3Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+shader_parameter/u_light_col = PackedVector3Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+shader_parameter/u_light_count = 0
+shader_parameter/u_amb = Vector3(0.1, 0.14, 0.22)
+shader_parameter/u_n = Vector2(0.05, 0)
+shader_parameter/u_vel_a = Vector3(0.35, -0.12, 0.18)
+shader_parameter/u_vel_b = Vector3(0, 0, 0)
+shader_parameter/u_sway_a = Vector2(0.5, 0.5)
+shader_parameter/u_sway_b = Vector2(0, 0)
+shader_parameter/u_size_a = Vector2(0.03, 0.055)
+shader_parameter/u_size_b = Vector2(0.05, 0.05)
+shader_parameter/u_col_a = Vector4(0.75, 0.8, 0.95, 1)
+shader_parameter/u_col_b = Vector4(1, 1, 1, 1)
+shader_parameter/u_al_a = Vector3(0.5, 0, 0)
+shader_parameter/u_al_b = Vector3(0, 0, 0)
+shader_parameter/u_ya = Vector2(-1, 9)
+shader_parameter/u_yb = Vector2(0, 1)
+
+[sub_resource type="MultiMesh" id="MultiMesh_158j0"]
+transform_format = 1
+use_custom_data = true
+mesh = SubResource("QuadMesh_8ufvo")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_iml3i"]
+render_priority = 8
+shader = ExtResource("2_rhgu5")
+shader_parameter/u_seed = 0.0
+shader_parameter/u_intensity = 1.0
+shader_parameter/u_is_halo = 0.0
+shader_parameter/u_is_instanced = true
+shader_parameter/u_col = Vector3(1, 0.58, 0.22)
+
+[sub_resource type="MultiMesh" id="MultiMesh_d5krg"]
+transform_format = 1
+use_custom_data = true
+mesh = SubResource("QuadMesh_8ufvo")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_41waw"]
+transparency = 1
+cull_mode = 2
+depth_draw_mode = 2
+shading_mode = 0
+vertex_color_use_as_albedo = true
+
+[sub_resource type="QuadMesh" id="QuadMesh_45gyv"]
+orientation = 1
+
+[sub_resource type="MultiMesh" id="MultiMesh_87ec7"]
+transform_format = 1
+use_colors = true
+mesh = SubResource("QuadMesh_45gyv")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6s8j8"]
+render_priority = 6
+transparency = 1
+blend_mode = 1
+cull_mode = 2
+depth_draw_mode = 2
+shading_mode = 0
+vertex_color_use_as_albedo = true
+
+[sub_resource type="MultiMesh" id="MultiMesh_o8sbh"]
+transform_format = 1
+use_colors = true
+mesh = ExtResource("5_j7sck")
+
+[node name="Fx" type="Node3D" unique_id=1673606220]
+script = ExtResource("1_46d7d")
+
+[node name="Lights" type="Node3D" parent="." unique_id=2108428326]
+
+[node name="MoonLight" type="DirectionalLight3D" parent="Lights" unique_id=1052879959]
+unique_name_in_owner = true
+shadow_enabled = true
+shadow_bias = 0.06
+shadow_normal_bias = 0.85
+shadow_blur = 0.25
+directional_shadow_mode = 0
+directional_shadow_max_distance = 72.0
+
+[node name="FillLight" type="DirectionalLight3D" parent="Lights" unique_id=1195711007]
+unique_name_in_owner = true
+
+[node name="BeaconLight" type="OmniLight3D" parent="Lights" unique_id=1567441114]
+unique_name_in_owner = true
+light_color = Color(1, 0.54, 0.22, 1)
+shadow_enabled = true
+shadow_bias = 0.06
+shadow_normal_bias = 0.75
+shadow_blur = 0.35
+omni_range = 75.0
+omni_attenuation = 1.42
+omni_shadow_mode = 0
+
+[node name="SpotPool" type="Node3D" parent="Lights" unique_id=276972669]
+unique_name_in_owner = true
+
+[node name="Spot0" type="SpotLight3D" parent="Lights/SpotPool" unique_id=1642561745]
+light_color = Color(1, 0.6, 0.28, 1)
+light_energy = 0.0
+shadow_enabled = true
+shadow_normal_bias = 0.45
+shadow_blur = 0.35
+spot_range = 20.0
+spot_angle = 58.0
+
+[node name="Spot1" type="SpotLight3D" parent="Lights/SpotPool" unique_id=954133605]
+light_color = Color(1, 0.6, 0.28, 1)
+light_energy = 0.0
+shadow_enabled = true
+shadow_normal_bias = 0.45
+shadow_blur = 0.35
+spot_range = 20.0
+spot_angle = 58.0
+
+[node name="Spot2" type="SpotLight3D" parent="Lights/SpotPool" unique_id=929599381]
+light_color = Color(1, 0.6, 0.28, 1)
+light_energy = 0.0
+shadow_enabled = true
+shadow_normal_bias = 0.45
+shadow_blur = 0.35
+spot_range = 20.0
+spot_angle = 58.0
+
+[node name="TowerLights" type="Node3D" parent="Lights" unique_id=78412977]
+unique_name_in_owner = true
+
+[node name="TowerLight0" type="OmniLight3D" parent="Lights/TowerLights" unique_id=269322452]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TowerLight1" type="OmniLight3D" parent="Lights/TowerLights" unique_id=1343127938]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TowerLight2" type="OmniLight3D" parent="Lights/TowerLights" unique_id=1516846998]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TowerLight3" type="OmniLight3D" parent="Lights/TowerLights" unique_id=110693809]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TowerLight4" type="OmniLight3D" parent="Lights/TowerLights" unique_id=362759585]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TowerLight5" type="OmniLight3D" parent="Lights/TowerLights" unique_id=2000412619]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TowerLight6" type="OmniLight3D" parent="Lights/TowerLights" unique_id=1987116799]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TowerLight7" type="OmniLight3D" parent="Lights/TowerLights" unique_id=1088844754]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TowerLight8" type="OmniLight3D" parent="Lights/TowerLights" unique_id=378349279]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TowerLight9" type="OmniLight3D" parent="Lights/TowerLights" unique_id=1946379462]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TowerLight10" type="OmniLight3D" parent="Lights/TowerLights" unique_id=1196372382]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TowerLight11" type="OmniLight3D" parent="Lights/TowerLights" unique_id=1405688033]
+light_color = Color(1, 0.58, 0.26, 1)
+light_energy = 0.0
+omni_range = 15.0
+omni_attenuation = 1.8
+
+[node name="TorchLights" type="Node3D" parent="Lights" unique_id=1820453532]
+unique_name_in_owner = true
+
+[node name="TorchLight0" type="OmniLight3D" parent="Lights/TorchLights" unique_id=893983902]
+light_color = Color(1, 0.65, 0.28, 1)
+light_energy = 0.0
+omni_range = 7.5
+omni_attenuation = 1.9
+
+[node name="TorchLight1" type="OmniLight3D" parent="Lights/TorchLights" unique_id=518271832]
+light_color = Color(1, 0.65, 0.28, 1)
+light_energy = 0.0
+omni_range = 7.5
+omni_attenuation = 1.9
+
+[node name="TorchLight2" type="OmniLight3D" parent="Lights/TorchLights" unique_id=254111832]
+light_color = Color(1, 0.65, 0.28, 1)
+light_energy = 0.0
+omni_range = 7.5
+omni_attenuation = 1.9
+
+[node name="TorchLight3" type="OmniLight3D" parent="Lights/TorchLights" unique_id=25642599]
+light_color = Color(1, 0.65, 0.28, 1)
+light_energy = 0.0
+omni_range = 7.5
+omni_attenuation = 1.9
+
+[node name="TorchLight4" type="OmniLight3D" parent="Lights/TorchLights" unique_id=1215882160]
+light_color = Color(1, 0.65, 0.28, 1)
+light_energy = 0.0
+omni_range = 7.5
+omni_attenuation = 1.9
+
+[node name="TorchLight5" type="OmniLight3D" parent="Lights/TorchLights" unique_id=509862666]
+light_color = Color(1, 0.65, 0.28, 1)
+light_energy = 0.0
+omni_range = 7.5
+omni_attenuation = 1.9
+
+[node name="TorchLight6" type="OmniLight3D" parent="Lights/TorchLights" unique_id=1430029612]
+light_color = Color(1, 0.65, 0.28, 1)
+light_energy = 0.0
+omni_range = 7.5
+omni_attenuation = 1.9
+
+[node name="TorchLight7" type="OmniLight3D" parent="Lights/TorchLights" unique_id=799374598]
+light_color = Color(1, 0.65, 0.28, 1)
+light_energy = 0.0
+omni_range = 7.5
+omni_attenuation = 1.9
+
+[node name="EnvLights" type="Node3D" parent="Lights" unique_id=1170801256]
+unique_name_in_owner = true
+
+[node name="EnvLight0" type="OmniLight3D" parent="Lights/EnvLights" unique_id=388988427]
+light_energy = 0.0
+
+[node name="EnvLight1" type="OmniLight3D" parent="Lights/EnvLights" unique_id=1189609693]
+light_energy = 0.0
+
+[node name="EnvLight2" type="OmniLight3D" parent="Lights/EnvLights" unique_id=1086432681]
+light_energy = 0.0
+
+[node name="FlashPool" type="Node3D" parent="Lights" unique_id=1507944253]
+unique_name_in_owner = true
+
+[node name="Flash0" type="OmniLight3D" parent="Lights/FlashPool" unique_id=757016020]
+light_energy = 0.0
+omni_range = 18.0
+
+[node name="Flash1" type="OmniLight3D" parent="Lights/FlashPool" unique_id=475557445]
+light_energy = 0.0
+omni_range = 18.0
+
+[node name="Flash2" type="OmniLight3D" parent="Lights/FlashPool" unique_id=178777239]
+light_energy = 0.0
+omni_range = 18.0
+
+[node name="Flash3" type="OmniLight3D" parent="Lights/FlashPool" unique_id=1784693815]
+light_energy = 0.0
+omni_range = 18.0
+
+[node name="BeaconFlameRoot" type="Node3D" parent="." unique_id=672494180]
+unique_name_in_owner = true
+
+[node name="Flame0" type="MeshInstance3D" parent="BeaconFlameRoot" unique_id=1530760950]
+transform = Transform3D(3.25, 0, 0, 0, 4.45, 0, 0, 0, 1, 0, 1.9135, 0)
+material_override = SubResource("ShaderMaterial_8stuq")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_8ufvo")
+
+[node name="Flame1" type="MeshInstance3D" parent="BeaconFlameRoot" unique_id=903103206]
+transform = Transform3D(3.0333333, 0, 0, 0, 4.2423334, 0, 0, 0, 1, 0.24169862, 1.8242034, -0.03607646)
+material_override = SubResource("ShaderMaterial_0l7m0")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_8ufvo")
+
+[node name="Flame2" type="MeshInstance3D" parent="BeaconFlameRoot" unique_id=1848281512]
+transform = Transform3D(2.8166666, 0, 0, 0, 4.0346665, 0, 0, 0, 1, -0.24404122, 1.7349067, -0.2707035)
+material_override = SubResource("ShaderMaterial_f4tek")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_8ufvo")
+
+[node name="BeaconHalo" type="MeshInstance3D" parent="BeaconFlameRoot" unique_id=2088752673]
+unique_name_in_owner = true
+transform = Transform3D(13.5, 0, 0, 0, 13.5, 0, 0, 0, 1, 0, 1.65, 0)
+material_override = SubResource("ShaderMaterial_6pgv8")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_8ufvo")
+
+[node name="LanternFlames" type="Node3D" parent="." unique_id=66231904]
+unique_name_in_owner = true
+
+[node name="Lantern0" type="MeshInstance3D" parent="LanternFlames" unique_id=1649658000]
+transform = Transform3D(0.42, 0, 0, 0, 0.68, 0, 0, 0, 1, 0, 0, 0)
+visible = false
+material_override = SubResource("ShaderMaterial_v6185")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_8ufvo")
+
+[node name="Lantern1" type="MeshInstance3D" parent="LanternFlames" unique_id=1408900572]
+transform = Transform3D(0.42, 0, 0, 0, 0.68, 0, 0, 0, 1, 0, 0, 0)
+visible = false
+material_override = SubResource("ShaderMaterial_jcc5n")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_8ufvo")
+
+[node name="BeaconEmbersGPU" type="GPUParticles3D" parent="." unique_id=909651709]
+unique_name_in_owner = true
+material_override = SubResource("StandardMaterial3D_bab6p")
+cast_shadow = 0
+amount = 36
+lifetime = 1.8
+preprocess = 0.5
+process_material = SubResource("ParticleProcessMaterial_7eefj")
+draw_pass_1 = SubResource("QuadMesh_8ufvo")
+
+[node name="WaterfallParticlesGPU" type="GPUParticles3D" parent="." unique_id=104730554]
+unique_name_in_owner = true
+material_override = SubResource("StandardMaterial3D_bab6p")
+cast_shadow = 0
+emitting = false
+amount = 42
+lifetime = 0.85
+process_material = SubResource("ParticleProcessMaterial_3h1xg")
+draw_pass_1 = SubResource("QuadMesh_8ufvo")
+
+[node name="MultiMeshes" type="Node3D" parent="." unique_id=1890220091]
+
+[node name="ParticlesMMI" type="MultiMeshInstance3D" parent="MultiMeshes" unique_id=204603415]
+unique_name_in_owner = true
+material_override = SubResource("StandardMaterial3D_bab6p")
+cast_shadow = 0
+multimesh = SubResource("MultiMesh_70mu8")
+
+[node name="BoltsMMI" type="MultiMeshInstance3D" parent="MultiMeshes" unique_id=1752385631]
+unique_name_in_owner = true
+material_override = SubResource("StandardMaterial3D_2c286")
+cast_shadow = 0
+multimesh = SubResource("MultiMesh_3tgk7")
+
+[node name="WeatherMMI" type="MultiMeshInstance3D" parent="MultiMeshes" unique_id=1298485576]
+unique_name_in_owner = true
+material_override = SubResource("ShaderMaterial_s81n4")
+cast_shadow = 0
+extra_cull_margin = 16384.0
+multimesh = SubResource("MultiMesh_158j0")
+
+[node name="FlamesMMI" type="MultiMeshInstance3D" parent="MultiMeshes" unique_id=364065403]
+unique_name_in_owner = true
+material_override = SubResource("ShaderMaterial_iml3i")
+cast_shadow = 0
+multimesh = SubResource("MultiMesh_d5krg")
+
+[node name="DecalsMMI" type="MultiMeshInstance3D" parent="MultiMeshes" unique_id=522879697]
+unique_name_in_owner = true
+material_override = SubResource("StandardMaterial3D_41waw")
+cast_shadow = 0
+multimesh = SubResource("MultiMesh_87ec7")
+
+[node name="RingsMMI" type="MultiMeshInstance3D" parent="MultiMeshes" unique_id=2000922049]
+unique_name_in_owner = true
+material_override = SubResource("StandardMaterial3D_6s8j8")
+cast_shadow = 0
+multimesh = SubResource("MultiMesh_o8sbh")
