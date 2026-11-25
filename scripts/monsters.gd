@@ -47,8 +47,19 @@ var fx: CWFx
 var audio: CWAudio
 var towers_sys: CWTowers
 const GRID_CELL := 4.0
-var _grid: Dictionary = {}
+const GRID_DIM := 12
+const GRID_HALF := 24.0
+var _grid_buckets: Array = []
+var _grid_dirty: PackedInt32Array = PackedInt32Array()
+var _grid_tick: int = 0
 var _def_cache: Dictionary = {}
+
+
+func _ensure_grid_init() -> void:
+	if _grid_buckets.is_empty():
+		_grid_buckets.resize(GRID_DIM * GRID_DIM)
+		for gi in range(GRID_DIM * GRID_DIM):
+			_grid_buckets[gi] = []
 
 
 func get_def_res(mob_type: String) -> CWMonsterDef:
@@ -62,34 +73,40 @@ func get_def_res(mob_type: String) -> CWMonsterDef:
 
 
 func _insert_grid(m: CWMonsterUnit) -> void:
-	var key := Vector2i(int(floorf(float(m.x) / GRID_CELL)), int(floorf(float(m.z) / GRID_CELL)))
-	if not _grid.has(key):
-		_grid[key] = []
-	(_grid[key] as Array).append(m)
+	var gx := clampi(int(floorf((m.x + GRID_HALF) / GRID_CELL)), 0, GRID_DIM - 1)
+	var gz := clampi(int(floorf((m.z + GRID_HALF) / GRID_CELL)), 0, GRID_DIM - 1)
+	var idx := gz * GRID_DIM + gx
+	var b: Array = _grid_buckets[idx]
+	if b.is_empty():
+		_grid_dirty.append(idx)
+	b.append(m)
 
 
 func _rebuild_grid() -> void:
-	_grid.clear()
+	for idx in _grid_dirty:
+		(_grid_buckets[idx] as Array).clear()
+	_grid_dirty.clear()
 	for m in mons:
-		if not bool(m.dead) and float(m.hp) > 0.0:
+		if not m.dead and m.hp > 0.0:
 			_insert_grid(m)
 
 
 func _query_grid(cx: float, cz: float, rng: float) -> Array[CWMonsterUnit]:
 	var out: Array[CWMonsterUnit] = []
-	var x0 := int(floorf((cx - rng) / GRID_CELL))
-	var x1 := int(floorf((cx + rng) / GRID_CELL))
-	var z0 := int(floorf((cz - rng) / GRID_CELL))
-	var z1 := int(floorf((cz + rng) / GRID_CELL))
-	for gx in range(x0, x1 + 1):
-		for gz in range(z0, z1 + 1):
-			var key := Vector2i(gx, gz)
-			if _grid.has(key):
-				var bucket: Array = _grid[key]
+	var x0 := clampi(int(floorf((cx - rng + GRID_HALF) / GRID_CELL)), 0, GRID_DIM - 1)
+	var x1 := clampi(int(floorf((cx + rng + GRID_HALF) / GRID_CELL)), 0, GRID_DIM - 1)
+	var z0 := clampi(int(floorf((cz - rng + GRID_HALF) / GRID_CELL)), 0, GRID_DIM - 1)
+	var z1 := clampi(int(floorf((cz + rng + GRID_HALF) / GRID_CELL)), 0, GRID_DIM - 1)
+	for gz in range(z0, z1 + 1):
+		var row := gz * GRID_DIM
+		for gx in range(x0, x1 + 1):
+			var bucket: Array = _grid_buckets[row + gx]
+			if not bucket.is_empty():
 				for m_item: CWMonsterUnit in bucket:
 					out.append(m_item)
 	return out
 func init_monsters(p_terrain: CWTerrain, p_rig: CWRig, p_fx: CWFx, p_audio: CWAudio, p_towers: CWTowers) -> void:
+	_ensure_grid_init()
 	terrain = p_terrain
 	rig = p_rig
 	fx = p_fx
@@ -131,6 +148,42 @@ func spawn(type: String, hp_mul: float = 1.0, s_pos: float = -1.0, lat_ofs: floa
 	m.ability_cd = randf_range(2.5, 5.0)
 	m.torch = (type == "skel" or type == "mummy") and randf() < 0.45
 	m.col = col
+	m.base_spd = float(def["spd"])
+	m.unit_scale = float(def["scale"])
+	m.is_fly = bool(def.get("fly", false))
+	m.is_boss = bool(def.get("boss", false))
+	m.is_ghost = bool(def.get("ghost", false))
+	m.is_slip = bool(def.get("slip", false))
+	m.has_regen = def.has("regen")
+	m.regen_rate = float(def.get("regen", 0.0))
+	m.has_frenzy = def.has("frenzy")
+	m.frenzy_mul = float(def.get("frenzy", 0.0))
+	m.has_enrage = def.has("enrage")
+	m.enrage_th = float(def.get("enrage", 0.0))
+	m.has_aura = def.has("aura")
+	if m.has_aura:
+		m.aura_r = float(def["aura"][0])
+		m.aura_r2 = m.aura_r * m.aura_r
+		m.aura_boost = float(def["aura"][1])
+	m.has_summon = def.has("summon")
+	m.has_stomp = def.has("stomp")
+	m.has_special_fx = (type == "wisp" or type == "wraith" or type == "colossus")
+	var rk: String = def["rig"]
+	m.rig_is_fly = (rk == "fly")
+	m.has_eye = def.has("eye")
+	if m.has_eye:
+		m.eye_col = def["eye"]
+		if rk == "quad":
+			m.eye_y = 0.40 * m.unit_scale; m.eye_z = 0.40 * m.unit_scale
+		elif rk == "slime":
+			m.eye_y = 0.36 * m.unit_scale; m.eye_z = 0.28 * m.unit_scale
+		elif rk == "fly" or rk == "wisp":
+			m.eye_y = 0.04 * m.unit_scale; m.eye_z = 0.16 * m.unit_scale
+		elif rk == "bug":
+			m.eye_y = 0.22 * m.unit_scale; m.eye_z = 0.24 * m.unit_scale
+		else:
+			m.eye_y = 1.20 * m.unit_scale; m.eye_z = 0.16 * m.unit_scale
+	rig.bind_monster_batch(m)
 	mons.append(m)
 	_insert_grid(m)
 	new_mob_spawned.emit(type)
@@ -310,22 +363,22 @@ func find_duel_target(cx: float, cz: float, rng: float) -> CWMonsterUnit:
 
 
 func update_monsters(dt: float) -> void:
-	# Reset haste auras first
-	for m in mons:
-		m.haste = 0.0
-	for m in mons:
-		if bool(m.dead) or float(m.hp) <= 0.0:
-			continue
-		var def: Dictionary = m.def
-		if def.has("aura"):
-			var ar: float = def["aura"][0]
-			var boost: float = def["aura"][1]
-			var r2 := ar * ar
-			for other in _query_grid(float(m.x), float(m.z), ar):
-				if not bool(other.dead) and CWUtil.dist2(m.x, m.z, other.x, other.z) <= r2:
-					other.haste = maxf(float(other.haste), boost)
+	_grid_tick += 1
+	var do_grid_pass := (_grid_tick & 1) == 0
+	if do_grid_pass:
+		for m in mons:
+			m.haste = 0.0
+		for m in mons:
+			if m.has_aura and not m.dead and m.hp > 0.0:
+				for other in _query_grid(m.x, m.z, m.aura_r):
+					if not other.dead and CWUtil.dist2(m.x, m.z, other.x, other.z) <= m.aura_r2:
+						other.haste = maxf(other.haste, m.aura_boost)
 
 	var total_len: float = terrain.layout["total_len"]
+	var inv_total_len: float = 1.0 / maxf(total_len, 1.0)
+	var road_a: Array[Vector2] = terrain.layout["road"]
+	var s_a: Array[float] = terrain.layout["path_s"]
+	var road_last: int = s_a.size() - 1
 	var i := mons.size() - 1
 	while i >= 0:
 		var m := mons[i]
@@ -343,7 +396,7 @@ func update_monsters(dt: float) -> void:
 				_finish_boss(m)
 				mons.remove_at(i)
 			else:
-				_draw_one(m)
+				rig.push_monster_gpu(m)
 			i -= 1
 			continue
 
@@ -358,18 +411,18 @@ func update_monsters(dt: float) -> void:
 				m.slow_f = 0.0
 
 		# Troll regeneration
-		if def.has("regen"):
-			m.hp = minf(float(m.max_hp), float(m.hp) + float(m.max_hp) * float(def["regen"]) * dt)
+		if m.has_regen:
+			m.hp = minf(m.max_hp, m.hp + m.max_hp * m.regen_rate * dt)
 
 		# Wraith periodic phase fade
-		if bool(def.get("ghost", false)):
+		if m.is_ghost:
 			m.ghost_t = float(m.ghost_t) + dt
 			m.faded = fmod(float(m.ghost_t), 4.7) > 3.0
 
 		# Special active abilities (Summon / Frost Jotun Stomp)
 		m.ability_cd = float(m.ability_cd) - dt
 		if float(m.ability_cd) <= 0.0:
-			if def.has("summon"):
+			if m.has_summon:
 				var sm: Dictionary = def["summon"]
 				if int(m.summons) < int(sm["max"]):
 					m.ability_cd = float(sm["every"])
@@ -378,7 +431,7 @@ func update_monsters(dt: float) -> void:
 					for _k in range(int(sm["n"])):
 						spawn(String(sm["type"]), float(sm["hp"]), float(m.s) + randf_range(-0.6, 0.6), float(m.lat) + randf_range(-0.4, 0.4))
 					fx.spawn_sparks(Vector3(m.x, float(m.y) + 1.0, m.z), 8, 3.0, Color(0.4, 1.0, 0.5))
-			elif def.has("stomp"):
+			elif m.has_stomp:
 				var st: Dictionary = def["stomp"]
 				m.ability_cd = float(st["every"])
 				towers_sys.stun_towers_in_radius(m.x, m.z, float(st["r"]), float(st["stun"]))
@@ -408,13 +461,13 @@ func update_monsters(dt: float) -> void:
 				audio.play_sfx("hit", 0.45)
 		else:
 			m.blocker = null
-			var spd := float(def["spd"]) * (1.0 - float(m.slow_f)) * (1.0 + float(m.haste))
+			var spd := m.base_spd * (1.0 - m.slow_f) * (1.0 + m.haste)
 			# Ghoul frenzy when hurt
-			if def.has("frenzy"):
-				var hurt := 1.0 - clampf(float(m.hp) / maxf(float(m.max_hp), 1.0), 0.0, 1.0)
-				spd *= (1.0 + hurt * float(def["frenzy"]))
+			if m.has_frenzy:
+				var hurt := 1.0 - clampf(m.hp / maxf(m.max_hp, 1.0), 0.0, 1.0)
+				spd *= (1.0 + hurt * m.frenzy_mul)
 			# Magma Colossus enrage below 35% HP (61-monsters.js:286)
-			if def.has("enrage") and float(m.hp) < float(m.max_hp) * float(def["enrage"]):
+			if m.has_enrage and m.hp < m.max_hp * m.enrage_th:
 				spd *= 1.35
 				if not bool(m.raged):
 					m.raged = true
@@ -422,11 +475,30 @@ func update_monsters(dt: float) -> void:
 					fx.add_shake(0.55)
 					audio.play_sfx("horn_boss", 0.85)
 
-			m.s = float(m.s) + spd * dt
-			var is_fly := bool(def.get("fly", false))
-			var sample := terrain.sample_smooth_road(float(m.s)) if is_fly else CWLayout.sample_path(terrain.layout, float(m.s))
-			var p: Vector2 = sample["pos"]
-			var d: Vector2 = sample["dir"]
+			m.s += spd * dt
+			var is_fly := m.is_fly
+			var p: Vector2
+			var d: Vector2
+			var prog_v: float
+			if is_fly:
+				var sample := terrain.sample_smooth_road(m.s)
+				p = sample["pos"]
+				d = sample["dir"]
+				prog_v = float(sample["prog"])
+			else:
+				var cs := clampf(m.s, 0.0, total_len)
+				var lo := m.road_idx
+				if lo >= road_last:
+					lo = maxi(0, road_last - 1)
+				while lo + 1 < road_last and s_a[lo + 1] <= cs:
+					lo += 1
+				m.road_idx = lo
+				var hi := mini(lo + 1, road_last)
+				var seg := maxf(s_a[hi] - s_a[lo], 1e-5)
+				var rt := clampf((cs - s_a[lo]) / seg, 0.0, 1.0)
+				p = road_a[lo].lerp(road_a[hi], rt)
+				d = (road_a[hi] - road_a[lo]).normalized()
+				prog_v = cs * inv_total_len
 			var perp := Vector2(-d.y, d.x)
 			if is_fly:
 				var weave := sin(float(m.phase) * 0.22) * (0.70 if String(m.type) == "wisp" else 0.45)
@@ -445,11 +517,11 @@ func update_monsters(dt: float) -> void:
 				m.z = p.y + perp.y * float(m.lat)
 				m.y = terrain.height_at(m.x, m.z)
 			m.yaw = atan2(d.x, d.y)
-			m.prog = float(sample["prog"])
+			m.prog = prog_v
 			m.phase = float(m.phase) + dt * spd * 6.2
 			m.mv = CWUtil.damp(float(m.mv), 1.0, 10.0, dt)
 			# Boss heavy footstep dust, footprint decal & subtle camera shake (61-monsters.js:322)
-			if bool(def.get("boss", false)) and not is_fly:
+			if m.is_boss and not is_fly:
 				var st_idx := int(floorf(float(m.phase) / PI))
 				if st_idx != int(m.step):
 					m.step = st_idx
@@ -468,46 +540,48 @@ func update_monsters(dt: float) -> void:
 				i -= 1
 				continue
 
-		_draw_one(m)
-		var m_ty: String = String(m.type)
-		var m_sc: float = float(def["scale"])
-		var m_pos := Vector3(m.x, m.y, m.z)
-		var hit_h: float = float(def.get("hit_h", 0.6))
-		# Slowed monster crackling blue lightning arcs (61-monsters.js:157)
-		if float(m.slow_t) > 0.0 and randf() < dt * 8.0:
-			var ba := randf() * TAU
-			var b0 := m_pos + Vector3(0.0, hit_h, 0.0)
-			var b1 := b0 + Vector3(cos(ba) * 0.45 * m_sc, randf_range(-0.28, 0.36), sin(ba) * 0.45 * m_sc)
-			fx.spawn_bolt(b0, b1, Color(0.45, 0.72, 1.6), 0.10)
-		# Wisp glowing aura & sparkling trail (61-monsters.js:152)
-		if m_ty == "wisp":
-			var wc: Color = m.col
-			rig.push_glow(m_pos, wc * 1.4, 0.85, 0.48)
-			if randf() < dt * 14.0:
-				fx.spawn_sparks(m_pos, 1, 1.4, wc * 1.8)
-		# Wraith ethereal blue aura & drifting wisps (61-monsters.js:153)
-		elif m_ty == "wraith":
-			var wa := 0.46 if bool(m.faded) else 0.18
-			rig.push_glow(m_pos + Vector3(0.0, 0.75 * m_sc, 0.0), Color(0.30, 0.65, 1.5), 1.45 * m_sc, wa)
-			if bool(m.faded) and randf() < dt * 12.0:
-				fx.spawn_sparks(m_pos + Vector3(randf_range(-0.22, 0.22), randf_range(0.2, 1.2), randf_range(-0.22, 0.22)), 1, 1.2, Color(0.55, 1.0, 2.0))
-		# Necromancer / Brood Queen / Buried King summon cast aura (61-monsters.js:154)
-		elif (m_ty == "necro" or m_ty == "queen" or m_ty == "king") and float(m.cast) > 0.02:
-			var cc := Color(0.4, 1.6, 0.6) if m_ty == "necro" else (Color(1.2, 0.5, 1.6) if m_ty == "queen" else Color(0.4, 1.5, 1.3))
-			var cu := float(m.cast)
-			rig.push_glow(m_pos + Vector3(0.0, hit_h * 1.5, 0.0), cc, 2.2 * cu * m_sc, 0.34 * cu)
-		# Magma Colossus rising volcanic ember trail (61-monsters.js:155)
-		elif m_ty == "colossus":
-			var erate := 24.0 if bool(m.raged) else 7.0
-			if randf() < dt * erate:
-				fx.spawn_sparks(m_pos + Vector3(randf_range(-0.65, 0.65), randf_range(0.6, 2.6), randf_range(-0.65, 0.65)), 1, 2.0, Color(2.6, 0.9, 0.15))
-		if bool(m.torch):
+		rig.push_monster_gpu(m)
+		if m.slow_t > 0.0 or m.cast > 0.01 or m.has_special_fx:
+			var m_ty: String = m.type
+			var m_sc: float = m.unit_scale
+			var m_pos := Vector3(m.x, m.y, m.z)
+			var hit_h: float = float(def.get("hit_h", 0.6))
+			# Slowed monster crackling blue lightning arcs (61-monsters.js:157)
+			if float(m.slow_t) > 0.0 and randf() < dt * 8.0:
+				var ba := randf() * TAU
+				var b0 := m_pos + Vector3(0.0, hit_h, 0.0)
+				var b1 := b0 + Vector3(cos(ba) * 0.45 * m_sc, randf_range(-0.28, 0.36), sin(ba) * 0.45 * m_sc)
+				fx.spawn_bolt(b0, b1, Color(0.45, 0.72, 1.6), 0.10)
+			# Wisp glowing aura & sparkling trail (61-monsters.js:152)
+			if m_ty == "wisp":
+				var wc: Color = m.col
+				rig.push_glow(m_pos, wc * 1.4, 0.85, 0.48)
+				if randf() < dt * 14.0:
+					fx.spawn_sparks(m_pos, 1, 1.4, wc * 1.8)
+			# Wraith ethereal blue aura & drifting wisps (61-monsters.js:153)
+			elif m_ty == "wraith":
+				var wa := 0.46 if bool(m.faded) else 0.18
+				rig.push_glow(m_pos + Vector3(0.0, 0.75 * m_sc, 0.0), Color(0.30, 0.65, 1.5), 1.45 * m_sc, wa)
+				if bool(m.faded) and randf() < dt * 12.0:
+					fx.spawn_sparks(m_pos + Vector3(randf_range(-0.22, 0.22), randf_range(0.2, 1.2), randf_range(-0.22, 0.22)), 1, 1.2, Color(0.55, 1.0, 2.0))
+			# Necromancer / Brood Queen / Buried King summon cast aura (61-monsters.js:154)
+			elif (m_ty == "necro" or m_ty == "queen" or m_ty == "king") and float(m.cast) > 0.02:
+				var cc := Color(0.4, 1.6, 0.6) if m_ty == "necro" else (Color(1.2, 0.5, 1.6) if m_ty == "queen" else Color(0.4, 1.5, 1.3))
+				var cu := float(m.cast)
+				rig.push_glow(m_pos + Vector3(0.0, hit_h * 1.5, 0.0), cc, 2.2 * cu * m_sc, 0.34 * cu)
+			# Magma Colossus rising volcanic ember trail (61-monsters.js:155)
+			elif m_ty == "colossus":
+				var erate := 24.0 if bool(m.raged) else 7.0
+				if randf() < dt * erate:
+					fx.spawn_sparks(m_pos + Vector3(randf_range(-0.65, 0.65), randf_range(0.6, 2.6), randf_range(-0.65, 0.65)), 1, 2.0, Color(2.6, 0.9, 0.15))
+		if m.torch:
 			var tp: Vector3 = rig.last_torch_pos
 			fx.torch_positions.append(tp)
 			if randf() < dt * 4.5:
 				fx.spawn_flame_puff(tp, 0.16)
 		i -= 1
-	_rebuild_grid()
+	if do_grid_pass:
+		_rebuild_grid()
 
 
 func _draw_one(m: CWMonsterUnit) -> void:
@@ -558,4 +632,6 @@ func _draw_one(m: CWMonsterUnit) -> void:
 
 func clear_all() -> void:
 	mons.clear()
-	_grid.clear()
+	for idx in _grid_dirty:
+		(_grid_buckets[idx] as Array).clear()
+	_grid_dirty.clear()

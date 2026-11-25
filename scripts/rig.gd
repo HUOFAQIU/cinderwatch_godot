@@ -51,8 +51,63 @@ class PartBatch:
 		mm.visible_instance_count = count
 
 
+
+
+class UnitBatch:
+	var mmi: MultiMeshInstance3D
+	var mm: MultiMesh
+	var cap: int
+	var count: int = 0
+	var is_boss: bool = false
+	var buf: PackedFloat32Array = PackedFloat32Array()
+
+	func _init(parent: Node3D, mesh: Mesh, mat: Material, p_cap: int, p_is_boss: bool = false) -> void:
+		cap = p_cap
+		is_boss = p_is_boss
+		buf.resize(cap * 20)
+		mm = MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		mm.use_custom_data = true
+		mm.mesh = mesh
+		mm.instance_count = cap
+		mm.visible_instance_count = 0
+		mmi = MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		mmi.material_override = mat
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		mmi.extra_cull_margin = 64.0
+		parent.add_child(mmi)
+
+	func begin() -> void:
+		count = 0
+
+	func push(x: float, y: float, z: float, yaw: float, sc: float, col: Color, phase: float, swing: float, flash: float, mv: float) -> void:
+		if count >= cap:
+			return
+		var off := count * 20
+		var c := cos(yaw) * sc
+		var s := sin(yaw) * sc
+		buf[off] = c; buf[off + 1] = 0.0; buf[off + 2] = s; buf[off + 3] = x
+		buf[off + 4] = 0.0; buf[off + 5] = sc; buf[off + 6] = 0.0; buf[off + 7] = y
+		buf[off + 8] = -s; buf[off + 9] = 0.0; buf[off + 10] = c; buf[off + 11] = z
+		buf[off + 12] = col.r; buf[off + 13] = col.g; buf[off + 14] = col.b; buf[off + 15] = col.a
+		buf[off + 16] = phase; buf[off + 17] = swing; buf[off + 18] = flash; buf[off + 19] = mv
+		count += 1
+
+	func end() -> void:
+		if count > 0:
+			mm.buffer = buf
+		mm.visible_instance_count = count
+
+
 var gfx: CWGfx
 var batches: Dictionary = {}
+var unit_batches: Dictionary = {}
+var _prim_data: Dictionary = {}
+var _cur_pid: float = 0.0
+var _cur_piv: Vector3 = Vector3.ZERO
+var _crowd_shadow_off: bool = false
 var debris: Array[Dictionary] = []
 var last_torch_pos: Vector3 = Vector3.ZERO
 var capture_buf: Array[Dictionary] = []
@@ -66,10 +121,18 @@ const MAX_GLOW := 1600
 
 func init_kits(p_gfx: CWGfx) -> void:
 	gfx = p_gfx
-	batches["box"] = PartBatch.new(self, _make_box_mesh(), gfx.mat_inst, 9600)
-	batches["cyl"] = PartBatch.new(self, _make_cyl_mesh(6), gfx.mat_inst, 3600)
-	batches["cone"] = PartBatch.new(self, _make_cone_mesh(6), gfx.mat_inst, 2400)
-	batches["sphere"] = PartBatch.new(self, _make_sphere_mesh(), gfx.mat_inst, 3200)
+	var m_box := _make_box_mesh()
+	var m_cyl := _make_cyl_mesh(6)
+	var m_cone := _make_cone_mesh(6)
+	var m_sph := _make_sphere_mesh()
+	_cache_prim("box", m_box)
+	_cache_prim("cyl", m_cyl)
+	_cache_prim("cone", m_cone)
+	_cache_prim("sphere", m_sph)
+	batches["box"] = PartBatch.new(self, m_box, gfx.mat_inst, 2048)
+	batches["cyl"] = PartBatch.new(self, m_cyl, gfx.mat_inst, 1024)
+	batches["cone"] = PartBatch.new(self, m_cone, gfx.mat_inst, 512)
+	batches["sphere"] = PartBatch.new(self, m_sph, gfx.mat_inst, 1024)
 
 	# P0-4: Additive billboard MultiMesh for glowing monster eyes & 9x halos
 	var g_mat := StandardMaterial3D.new()
@@ -129,15 +192,103 @@ func _make_sphere_mesh() -> ArrayMesh:
 	return s.build()
 
 
+func _cache_prim(kind: String, mesh: ArrayMesh) -> void:
+	var arr := mesh.surface_get_arrays(0)
+	_prim_data[kind] = {
+		"v": arr[Mesh.ARRAY_VERTEX],
+		"n": arr[Mesh.ARRAY_NORMAL],
+		"uv": arr[Mesh.ARRAY_TEX_UV],
+	}
+
+
+func _bake_unit_mesh(draw_fn: Callable) -> ArrayMesh:
+	capture_buf.clear()
+	capturing = true
+	_cur_pid = 0.0
+	_cur_piv = Vector3.ZERO
+	draw_fn.call()
+	capturing = false
+	var out_v := PackedVector3Array()
+	var out_n := PackedVector3Array()
+	var out_uv := PackedVector2Array()
+	var out_c := PackedColorArray()
+	var out_c0 := PackedFloat32Array()
+	for item in capture_buf:
+		var kind: String = item["kind"]
+		var pd: Dictionary = _prim_data.get(kind, _prim_data["box"])
+		var pv: PackedVector3Array = pd["v"]
+		var pn: PackedVector3Array = pd["n"]
+		var puv: PackedVector2Array = pd["uv"]
+		var xf: Transform3D = item["xf"]
+		var nmat := xf.basis.inverse().transposed()
+		var col: Color = item["col"]
+		var pid: float = float(item.get("pid", 0.0))
+		var piv: Vector3 = item.get("piv", Vector3.ZERO)
+		for vi in range(pv.size()):
+			out_v.append(xf * pv[vi])
+			out_n.append((nmat * pn[vi]).normalized())
+			out_uv.append(puv[vi] if vi < puv.size() else Vector2.ZERO)
+			out_c.append(col)
+			out_c0.append(piv.x)
+			out_c0.append(piv.y)
+			out_c0.append(piv.z)
+			out_c0.append(pid)
+	capture_buf.clear()
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = out_v
+	arrays[Mesh.ARRAY_NORMAL] = out_n
+	arrays[Mesh.ARRAY_TEX_UV] = out_uv
+	arrays[Mesh.ARRAY_COLOR] = out_c
+	arrays[Mesh.ARRAY_CUSTOM0] = out_c0
+	var am := ArrayMesh.new()
+	if not out_v.is_empty():
+		am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
+	return am
+
+
+func _get_or_bake_unit_batch(key: String, draw_fn: Callable, cap: int = 2048, p_is_boss: bool = false) -> UnitBatch:
+	if unit_batches.has(key):
+		return unit_batches[key] as UnitBatch
+	var mesh := _bake_unit_mesh(draw_fn)
+	var ub := UnitBatch.new(self, mesh, gfx.mat_unit, cap, p_is_boss)
+	if _crowd_shadow_off and not p_is_boss:
+		ub.mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	unit_batches[key] = ub
+	return ub
+
+
+func set_crowd_shadow_lod(high_crowd: bool) -> void:
+	if _crowd_shadow_off == high_crowd:
+		return
+	_crowd_shadow_off = high_crowd
+	var mode := GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if high_crowd else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for ub_v in unit_batches.values():
+		var ub: UnitBatch = ub_v
+		if not ub.is_boss:
+			ub.mmi.cast_shadow = mode
+
+
+func get_gpu_unit_count() -> int:
+	var tot := 0
+	for ub_v in unit_batches.values():
+		tot += (ub_v as UnitBatch).count
+	return tot
+
+
 func begin_frame() -> void:
 	for b in batches.values():
 		b.begin()
+	for ub_v in unit_batches.values():
+		(ub_v as UnitBatch).begin()
 	glow_count = 0
 
 
 func end_frame() -> void:
 	for b in batches.values():
 		b.end()
+	for ub_v in unit_batches.values():
+		(ub_v as UnitBatch).end()
 	if glow_mm != null:
 		if glow_count > 0:
 			glow_mm.buffer = glow_buf
@@ -145,19 +296,23 @@ func end_frame() -> void:
 
 
 func push_glow(pos: Vector3, col: Color, size: float, alpha: float = 1.0) -> void:
+	push_glow_xyz(pos.x, pos.y, pos.z, col.r, col.g, col.b, size, alpha)
+
+
+func push_glow_xyz(px: float, py: float, pz: float, r: float, g: float, b: float, size: float, alpha: float = 1.0) -> void:
 	if capturing or glow_mm == null or glow_count >= MAX_GLOW:
 		return
 	var off := glow_count * 16
-	glow_buf[off] = size; glow_buf[off + 1] = 0.0; glow_buf[off + 2] = 0.0; glow_buf[off + 3] = pos.x
-	glow_buf[off + 4] = 0.0; glow_buf[off + 5] = size; glow_buf[off + 6] = 0.0; glow_buf[off + 7] = pos.y
-	glow_buf[off + 8] = 0.0; glow_buf[off + 9] = 0.0; glow_buf[off + 10] = size; glow_buf[off + 11] = pos.z
-	glow_buf[off + 12] = col.r * alpha; glow_buf[off + 13] = col.g * alpha; glow_buf[off + 14] = col.b * alpha; glow_buf[off + 15] = 1.0
+	glow_buf[off] = size; glow_buf[off + 1] = 0.0; glow_buf[off + 2] = 0.0; glow_buf[off + 3] = px
+	glow_buf[off + 4] = 0.0; glow_buf[off + 5] = size; glow_buf[off + 6] = 0.0; glow_buf[off + 7] = py
+	glow_buf[off + 8] = 0.0; glow_buf[off + 9] = 0.0; glow_buf[off + 10] = size; glow_buf[off + 11] = pz
+	glow_buf[off + 12] = r * alpha; glow_buf[off + 13] = g * alpha; glow_buf[off + 14] = b * alpha; glow_buf[off + 15] = 1.0
 	glow_count += 1
 
 
 func put_part(kind: String, xf: Transform3D, col: Color, flash: float = 0.0) -> void:
 	if capturing:
-		capture_buf.append({"kind": kind, "xf": xf, "col": col})
+		capture_buf.append({"kind": kind, "xf": xf, "col": col, "pid": _cur_pid, "piv": _cur_piv})
 		return
 	var b: PartBatch = batches.get(kind, batches["box"])
 	b.put(xf, col, flash)
@@ -171,6 +326,7 @@ func _xf(parent: Transform3D, pos: Vector3, rot: Vector3, scl: Vector3) -> Trans
 func draw_humanoid(pos: Vector3, yaw: float, scale_v: float, phase: float, swing: float, body_col: Color, accent_col: Color, flash: float, opts: Dictionary = {}) -> void:
 	var s := scale_v
 	if opts.get("wraith", false):
+		_cur_pid = 6.0; _cur_piv = Vector3.ZERO
 		var t_w := Time.get_ticks_msec() * 0.001 + pos.x * 0.7
 		var wr := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_euler(Vector3(0.16 * float(opts.get("mv", 1.0)), 0.0, sin(t_w * 1.3) * 0.06)), pos + Vector3(0.0, (0.24 + sin(t_w * 2.1) * 0.07) * s, 0.0))
 		var rc := Color(0.18, 0.23, 0.31)
@@ -229,6 +385,8 @@ func draw_humanoid(pos: Vector3, yaw: float, scale_v: float, phase: float, swing
 	var shin_w := (0.056 if is_skel else 0.10) * s
 	var hip_off := (0.095 if is_skel else 0.12) * s
 	for side in [-1, 1]:
+		_cur_pid = 1.0 if side < 0 else 2.0
+		_cur_piv = Vector3(float(side) * hip_off, 0.46 * s, 0.0)
 		var ta := thigh_a if side < 0 else -thigh_a
 		var ka := knee_l if side < 0 else knee_r
 		var u_leg := _xf(root, Vector3(float(side) * hip_off, 0.46 * s, 0.0), Vector3(ta, 0, 0), Vector3.ONE)
@@ -239,6 +397,7 @@ func draw_humanoid(pos: Vector3, yaw: float, scale_v: float, phase: float, swing
 			put_part("box", _xf(l_leg, Vector3(0, -0.23 * s, 0.04 * s), Vector3.ZERO, Vector3(0.082 * s, 0.046 * s, 0.16 * s)), bone_d, flash)
 
 	# Pelvis & Torso (exact 50-rig.js:48-55 spine + 3 rib bars + collarbone + sternum for skeletons)
+	_cur_pid = 3.0; _cur_piv = Vector3(0.0, 0.56 * s, 0.0)
 	var torso_w := (0.38 if is_skel else 0.44) * s if opts.get("heavy", false) else (0.31 if is_skel else 0.32) * s
 	put_part("box", _xf(root, Vector3(0, 0.50 * s, 0), Vector3.ZERO, Vector3(torso_w * (0.78 if is_skel else 0.85), (0.09 if is_skel else 0.12) * s, (0.13 if is_skel else 0.18) * s)), bone_d if is_skel else body_col.darkened(0.1), flash)
 	var fz := float(opts.get("flinch", 0.0))
@@ -316,11 +475,13 @@ func draw_humanoid(pos: Vector3, yaw: float, scale_v: float, phase: float, swing
 	var ua_w := (0.056 if is_skel else 0.10) * s
 	var la_w := (0.048 if is_skel else 0.09) * s
 	var arm_off := (0.19 if is_skel else torso_w * 0.62)
+	_cur_pid = 4.0; _cur_piv = Vector3(-arm_off, 0.95 * s, 0.0)
 	var l_uarm := _xf(torso, Vector3(-arm_off, 0.39 * s, 0), Vector3(l_sh, 0, 0.14), Vector3.ONE)
 	put_part("box", _xf(l_uarm, Vector3(0, -0.11 * s, 0), Vector3.ZERO, Vector3(ua_w, 0.22 * s, ua_w)), body_col, flash)
 	var l_larm := _xf(l_uarm, Vector3(0, -0.22 * s, 0), Vector3(-0.55 if has_torch else -0.45, 0, 0), Vector3.ONE)
 	put_part("box", _xf(l_larm, Vector3(0, -0.10 * s, 0), Vector3.ZERO, Vector3(la_w, 0.20 * s, la_w)), bone_d if is_skel else body_col.darkened(0.08), flash)
 
+	_cur_pid = 5.0; _cur_piv = Vector3(arm_off, 0.95 * s, 0.0)
 	var r_uarm := _xf(torso, Vector3(arm_off, 0.39 * s, 0), Vector3(r_sh, 0, -0.14), Vector3.ONE)
 	put_part("box", _xf(r_uarm, Vector3(0, -0.11 * s, 0), Vector3.ZERO, Vector3(ua_w, 0.22 * s, ua_w)), body_col, flash)
 	var r_larm := _xf(r_uarm, Vector3(0, -0.22 * s, 0), Vector3(-0.45 + (atk_arm * 0.35 if has_atk else 0.0), 0, 0), Vector3.ONE)
@@ -328,8 +489,10 @@ func draw_humanoid(pos: Vector3, yaw: float, scale_v: float, phase: float, swing
 
 	# Weapons & Special Gear
 	if opts.get("bow", false):
+		_cur_pid = 4.0; _cur_piv = Vector3(-arm_off, 0.95 * s, 0.0)
 		put_part("box", _xf(l_larm, Vector3(0, -0.18 * s, 0.14 * s), Vector3.ZERO, Vector3(0.04 * s, 0.52 * s, 0.06 * s)), Color(0.58, 0.40, 0.22), flash)
 	elif opts.get("keg", false):
+		_cur_pid = 3.0; _cur_piv = Vector3(0.0, 0.56 * s, 0.0)
 		put_part("cyl", _xf(torso, Vector3(0, 0.26 * s, 0.24 * s), Vector3(0, 0, PI * 0.5), Vector3(0.28 * s, 0.36 * s, 0.28 * s)), Color(0.55, 0.25, 0.12), flash)
 		put_part("sphere", _xf(torso, Vector3(0.04 * s, 0.44 * s, 0.24 * s), Vector3.ZERO, Vector3.ONE * 0.08 * s), Color(1.0, 0.55, 0.15), maxf(flash, 0.75))
 	elif opts.get("staff", false):
@@ -357,6 +520,7 @@ func draw_humanoid(pos: Vector3, yaw: float, scale_v: float, phase: float, swing
 		put_part("box", _xf(sw_base, Vector3(0, 0.33 * s, 0), Vector3.ZERO, Vector3(0.055 * s, 0.48 * s, 0.02 * s)), blade_c, flash)
 		put_part("cone", _xf(sw_base, Vector3(0, 0.61 * s, 0), Vector3.ZERO, Vector3(0.055 * s, 0.09 * s, 0.022 * s)), blade_c, flash)
 
+	_cur_pid = 4.0; _cur_piv = Vector3(-arm_off, 0.95 * s, 0.0)
 	if opts.get("shield", false):
 		if is_skel:
 			# Round iron-rimmed wooden shield (50-rig.js:78)
@@ -372,6 +536,7 @@ func draw_humanoid(pos: Vector3, yaw: float, scale_v: float, phase: float, swing
 		put_part("sphere", t_tip, Color(0.95, 0.38, 0.08), 0.55)
 		last_torch_pos = t_tip.origin
 
+	_cur_pid = 3.0; _cur_piv = Vector3(0.0, 0.56 * s, 0.0)
 	if opts.get("drum", false):
 		put_part("cyl", _xf(torso, Vector3(0, 0.12 * s, 0.26 * s), Vector3(0.45, 0, 0), Vector3(0.32 * s, 0.22 * s, 0.32 * s)), Color(0.55, 0.20, 0.16), flash)
 		put_part("cyl", _xf(torso, Vector3(0, 0.56 * s, -0.16 * s), Vector3.ZERO, Vector3(0.04 * s, 0.95 * s, 0.04 * s)), Color(0.42, 0.30, 0.20), flash)
@@ -381,6 +546,7 @@ func draw_humanoid(pos: Vector3, yaw: float, scale_v: float, phase: float, swing
 func draw_quadruped(pos: Vector3, yaw: float, scale_v: float, phase: float, body_col: Color, flash: float, eye_col: Color = Color.BLACK, swing: float = 0.0) -> void:
 	var s := scale_v
 	var lng := sin(clampf(swing, 0.0, 1.0) * PI)
+	_cur_pid = 13.0; _cur_piv = Vector3.ZERO
 	var root := Transform3D(Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, -lng * 0.35), pos + Vector3(0.0, (0.26 + lng * 0.16) * s, 0.0) + Basis(Vector3.UP, yaw) * Vector3(0.0, 0.0, lng * 0.28 * s))
 	put_part("box", _xf(root, Vector3.ZERO, Vector3.ZERO, Vector3(0.24 * s, 0.20 * s, 0.56 * s)), body_col, flash)
 	put_part("cone", _xf(root, Vector3(0.0, 0.10 * s, 0.34 * s), Vector3(PI * 0.45, 0, 0), Vector3(0.20 * s, 0.28 * s, 0.20 * s)), body_col.lightened(0.12), flash)
@@ -390,6 +556,8 @@ func draw_quadruped(pos: Vector3, yaw: float, scale_v: float, phase: float, body
 	var l := sin(phase) * 0.72
 	for sx in [-0.11, 0.11]:
 		for sz in [-0.18, 0.18]:
+			_cur_pid = 11.0 if (sx * sz > 0) else 12.0
+			_cur_piv = Vector3(sx * s, 0.24 * s, sz * s)
 			var a := l if (sx * sz > 0) else -l
 			put_part("box", _xf(root, Vector3(sx * s, -0.14 * s, sz * s), Vector3(a, 0, 0), Vector3(0.07 * s, 0.24 * s, 0.07 * s)), body_col.darkened(0.2), flash)
 	if eye_col.r + eye_col.g + eye_col.b > 0.01:
@@ -401,6 +569,7 @@ func draw_quadruped(pos: Vector3, yaw: float, scale_v: float, phase: float, body
 
 
 func draw_slime(pos: Vector3, yaw: float, scale_v: float, phase: float, col: Color, flash: float, eye_col: Color = Color.BLACK, swing: float = 0.0, is_toad: bool = false) -> void:
+	_cur_pid = 20.0; _cur_piv = Vector3.ZERO
 	if is_toad:
 		var hop_t := maxf(absf(sin(phase)), sin(clampf(swing, 0.0, 1.0) * PI) * 1.2)
 		var sq_t := lerpf(0.84, 1.12, hop_t)
@@ -432,6 +601,7 @@ func draw_slime(pos: Vector3, yaw: float, scale_v: float, phase: float, col: Col
 
 
 func draw_flyer(pos: Vector3, yaw: float, scale_v: float, phase: float, col: Color, flash: float, is_wisp: bool = false, eye_col: Color = Color.BLACK, is_garg: bool = false) -> void:
+	_cur_pid = 33.0; _cur_piv = Vector3.ZERO
 	if is_wisp:
 		var wroot := Transform3D(Basis(Vector3.UP, yaw), pos)
 		put_part("sphere", _xf(wroot, Vector3.ZERO, Vector3.ZERO, Vector3.ONE * 0.28 * scale_v), col, maxf(flash, 0.75))
@@ -446,8 +616,11 @@ func draw_flyer(pos: Vector3, yaw: float, scale_v: float, phase: float, col: Col
 	put_part("sphere", _xf(root, Vector3.ZERO, Vector3.ZERO, Vector3(0.24 * s, 0.18 * s, 0.32 * s)), col, flash)
 	var l_sh := _xf(root, Vector3(-0.08 * s, 0.02 * s, 0.0), Vector3(0.0, 0.0, -flap), Vector3.ONE)
 	var r_sh := _xf(root, Vector3(0.08 * s, 0.02 * s, 0.0), Vector3(0.0, 0.0, flap), Vector3.ONE)
+	_cur_pid = 31.0; _cur_piv = Vector3(-0.08 * s, 0.02 * s, 0.0)
 	put_part("box", _xf(l_sh, Vector3(-0.25 * s, 0.0, 0.0), Vector3.ZERO, Vector3(0.50 * s, 0.04 * s, 0.24 * s)), col.darkened(0.15), flash)
+	_cur_pid = 32.0; _cur_piv = Vector3(0.08 * s, 0.02 * s, 0.0)
 	put_part("box", _xf(r_sh, Vector3(0.25 * s, 0.0, 0.0), Vector3.ZERO, Vector3(0.50 * s, 0.04 * s, 0.24 * s)), col.darkened(0.15), flash)
+	_cur_pid = 33.0; _cur_piv = Vector3.ZERO
 	if is_garg:
 		# Sculpted stone horns, snout & barbed tail on Gargoyle (51-bestiary.js:108-115)
 		var gd := col.darkened(0.25)
@@ -465,6 +638,7 @@ func draw_flyer(pos: Vector3, yaw: float, scale_v: float, phase: float, col: Col
 
 
 func draw_bug(pos: Vector3, yaw: float, scale_v: float, phase: float, col: Color, flash: float, eye_col: Color = Color.BLACK, swing: float = 0.0) -> void:
+	_cur_pid = 43.0; _cur_piv = Vector3.ZERO
 	var s := scale_v
 	var lng := sin(clampf(swing, 0.0, 1.0) * PI)
 	var root := Transform3D(Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, -lng * 0.32), pos + Vector3(0.0, (0.18 + lng * 0.12) * s, 0.0) + Basis(Vector3.UP, yaw) * Vector3(0.0, 0.0, lng * 0.24 * s))
@@ -477,6 +651,8 @@ func draw_bug(pos: Vector3, yaw: float, scale_v: float, phase: float, col: Color
 		var a := sin(phase * 1.6 + float(i) * 1.3) * 0.38
 		var z := (-0.14 + float(i) * 0.10) * s
 		for sd in [-1.0, 1.0]:
+			_cur_pid = 41.0 if ((i + (0 if sd < 0.0 else 1)) % 2 == 0) else 42.0
+			_cur_piv = Vector3(sd * 0.10 * s, 0.18 * s, z)
 			var l_hip := _xf(root, Vector3(sd * 0.10 * s, 0.0, z), Vector3(0, -sd * a, sd * 0.55), Vector3.ONE)
 			put_part("box", _xf(l_hip, Vector3(sd * 0.12 * s, 0.05 * s, 0), Vector3(0, 0, -sd * 0.42), Vector3(0.24 * s, 0.042 * s, 0.042 * s)), col.darkened(0.22), flash)
 			put_part("box", _xf(l_hip, Vector3(sd * 0.28 * s, -0.08 * s, 0), Vector3(0, 0, sd * 0.85), Vector3(0.24 * s, 0.036 * s, 0.036 * s)), col.darkened(0.30), flash)
@@ -539,3 +715,98 @@ func update_debris(dt: float, terrain: CWTerrain) -> void:
 
 func clear_debris() -> void:
 	debris.clear()
+
+
+func bind_monster_batch(m: CWMonsterUnit) -> UnitBatch:
+	var key: String = m.type + ("_t" if m.torch else "")
+	if unit_batches.has(key):
+		m.ub = unit_batches[key] as UnitBatch
+		return m.ub
+	var def: Dictionary = m.def
+	var base_c: Color = def["col"]
+	var rig_k: String = def["rig"]
+	var cap: int = 64 if m.is_boss else 2048
+	m.ub = _get_or_bake_unit_batch(key, func():
+		match rig_k:
+			"human":
+				draw_humanoid(Vector3.ZERO, 0.0, 1.0, 0.0, 0.0, base_c, base_c.lightened(0.15), 0.0, {
+					"heavy": bool(def.get("heavy", false)),
+					"weapon": bool(def.get("weapon", false)),
+					"greatsword": bool(def.get("greatsword", false)),
+					"shield": bool(def.get("shield", false)),
+					"keg": bool(def.get("keg", false)),
+					"crown": bool(def.get("crown", false)),
+					"hood": bool(def.get("hood", false)),
+					"horns": bool(def.get("horns", false)),
+					"staff": bool(def.get("staff", false)),
+					"drum": bool(def.get("drum", false)),
+					"iceclub": bool(def.get("iceclub", false)),
+					"torch": m.torch,
+					"mv": 0.0,
+					"skel": bool(def.get("skel", false)),
+					"wraith": m.type == "wraith",
+					"armor_suit": bool(def.get("armor_suit", false)),
+					"wraps": bool(def.get("wraps", false)),
+				})
+			"quad":
+				draw_quadruped(Vector3.ZERO, 0.0, 1.0, 0.0, base_c, 0.0, Color.BLACK, 0.0)
+			"slime":
+				draw_slime(Vector3.ZERO, 0.0, 1.0, 0.0, base_c, 0.0, Color.BLACK, 0.0, m.type == "toad")
+			"fly":
+				draw_flyer(Vector3.ZERO, 0.0, 1.0, 0.0, base_c, 0.0, false, Color.BLACK, m.type == "gargoyle")
+			"wisp":
+				draw_flyer(Vector3.ZERO, 0.0, 1.0, 0.0, base_c, 0.0, true, Color.BLACK, false)
+			"bug":
+				draw_bug(Vector3.ZERO, 0.0, 1.0, 0.0, base_c, 0.0, Color.BLACK, 0.0)
+	, cap, m.is_boss)
+	return m.ub
+
+
+func push_monster_gpu(m: CWMonsterUnit) -> void:
+	var ub: UnitBatch = m.ub
+	if ub == null:
+		ub = bind_monster_batch(m)
+	var tint := Color.WHITE
+	if m.faded:
+		tint = Color(0.45, 1.0, 1.18, 1.0)
+	elif m.slow_t > 0.0:
+		tint = Color(0.62, 0.92, 1.15, 1.0)
+	var sc: float = m.unit_scale
+	var ph: float = m.phase * 2.0 if m.rig_is_fly else m.phase
+	var mv_enc: float = (2.0 + m.cast) if m.cast > 0.01 else m.mv
+	ub.push(m.x, m.y, m.z, m.yaw, sc, tint, ph, m.swing, m.flash, mv_enc)
+
+	if m.torch or m.has_eye:
+		var cy := cos(m.yaw)
+		var sy := sin(m.yaw)
+		if m.torch:
+			var lx := -0.22 * sc
+			var lz := 0.30 * sc
+			last_torch_pos = Vector3(m.x + cy * lx + sy * lz, m.y + 1.05 * sc, m.z - sy * lx + cy * lz)
+		if m.has_eye and glow_count < MAX_GLOW:
+			var ec := m.eye_col
+			push_glow_xyz(m.x + sy * m.eye_z, m.y + m.eye_y, m.z + cy * m.eye_z, ec.r, ec.g, ec.b, 0.34 * sc, 0.24)
+
+
+func push_footman_gpu(f: CWFootmanUnit) -> void:
+	var key := "footman_t" if f.torch else "footman_s"
+	var ub: UnitBatch
+	if unit_batches.has(key):
+		ub = unit_batches[key] as UnitBatch
+	else:
+		ub = _get_or_bake_unit_batch(key, func():
+			var f_opts := {"weapon": true, "mv": 0.0}
+			if f.torch:
+				f_opts["torch"] = true
+			else:
+				f_opts["shield"] = true
+			draw_humanoid(Vector3.ZERO, 0.0, 1.0, 0.0, 0.0, Color(0.24, 0.42, 0.76), Color(0.86, 0.78, 0.68), 0.0, f_opts)
+		, 256)
+	var sc := 0.90 + float(f.tower["lvl"]) * 0.05
+	ub.push(f.x, f.y, f.z, f.yaw, sc, Color.WHITE, f.phase, f.swing, f.flash, f.mv)
+	if f.torch:
+		var cy := cos(f.yaw)
+		var sy := sin(f.yaw)
+		var lx := -0.22 * sc
+		var lz := 0.30 * sc
+		last_torch_pos = Vector3(f.x + cy * lx + sy * lz, f.y + 1.05 * sc, f.z - sy * lx + cy * lz)

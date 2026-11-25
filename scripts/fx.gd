@@ -96,6 +96,7 @@ func init_fx() -> void:
 	beacon_light.omni_range = 75.0
 	beacon_light.omni_attenuation = 1.42
 	beacon_light.shadow_enabled = true
+	beacon_light.omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID
 	beacon_light.shadow_bias = 0.06
 	beacon_light.shadow_normal_bias = 0.75
 	beacon_light.shadow_blur = 0.35
@@ -1070,3 +1071,15 @@ func clear_fx() -> void:
 	wx_fade = 0.0
 	if wx_mat != null:
 		wx_mat.set_shader_parameter("u_fade", 0.0)
+
+
+var _spot_shadow_off: bool = false
+
+
+func set_crowd_shadow_lod(high_crowd: bool) -> void:
+	if _spot_shadow_off == high_crowd:
+		return
+	_spot_shadow_off = high_crowd
+	for s: Dictionary in spot_pool:
+		var sp: SpotLight3D = s["light"]
+		sp.shadow_enabled = not high_crowd

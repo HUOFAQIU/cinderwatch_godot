@@ -22,6 +22,7 @@ var tex_albedo: Texture2DArray
 var tex_height: Texture2DArray
 var mat_world: ShaderMaterial
 var mat_inst: ShaderMaterial
+var mat_unit: ShaderMaterial
 var mat_water: ShaderMaterial
 var mat_fall: ShaderMaterial
 
@@ -44,6 +45,13 @@ func init_resources() -> void:
 	mat_inst.set_shader_parameter("u_tex_h", tex_height)
 	mat_inst.set_shader_parameter("u_bump", 0.045)
 	mat_inst.set_shader_parameter("u_is_instanced", true)
+
+	var sh_unit := load("res://shaders/lit_unit.gdshader") as Shader
+	mat_unit = ShaderMaterial.new()
+	mat_unit.shader = sh_unit if sh_unit != null else sh_world
+	mat_unit.set_shader_parameter("u_tex_a", tex_albedo)
+	mat_unit.set_shader_parameter("u_tex_h", tex_height)
+	mat_unit.set_shader_parameter("u_bump", 0.04)
 
 	mat_water = ShaderMaterial.new()
 	mat_water.shader = sh_water

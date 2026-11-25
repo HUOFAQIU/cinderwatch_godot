@@ -1005,22 +1005,7 @@ func _update_footmen(dt: float, monsters_sys: CWMonsters) -> void:
 			f.hp = minf(f.max_hp, f.hp + dt * 4.0)
 
 		var has_torch := f.torch
-		var f_opts := {"weapon": true, "mv": f.mv, "flinch": f.flinch}
-		if has_torch:
-			f_opts["torch"] = true
-		else:
-			f_opts["shield"] = true
-		rig.draw_humanoid(
-			Vector3(f.x, f.y, f.z),
-			f.yaw,
-			0.90 + float(f.tower["lvl"]) * 0.05,
-			f.phase,
-			f.swing,
-			Color(0.24, 0.42, 0.76),
-			Color(0.86, 0.78, 0.68),
-			f.flash,
-			f_opts
-		)
+		rig.push_footman_gpu(f)
 		if has_torch:
 			var tpos: Vector3 = rig.last_torch_pos
 			fx.torch_positions.append(tpos)

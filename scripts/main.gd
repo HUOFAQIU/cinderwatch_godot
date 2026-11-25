@@ -247,9 +247,24 @@ func _process(delta: float) -> void:
 			fx.update_fx(sdt, sim_time, cam_pos)
 
 	_update_camera(rdt)
-	var tension := clampf(float(monsters_sys.mons.size()) / 24.0 + (0.45 if game.boss_wave else 0.0), 0.0, 1.0)
+	var mon_cnt := monsters_sys.mons.size()
+	if mon_cnt > 350:
+		rig.set_crowd_shadow_lod(true)
+		fx.set_crowd_shadow_lod(true)
+	elif mon_cnt < 300:
+		rig.set_crowd_shadow_lod(false)
+		fx.set_crowd_shadow_lod(false)
+	var tension := clampf(float(mon_cnt) / 24.0 + (0.45 if game.boss_wave else 0.0), 0.0, 1.0)
 	audio.update_ambience(tension, fx.beacon_level, float(terrain.bio.get("wind", 1.0)))
 	ui.update_ui(rdt)
+	ui.update_perf_overlay(
+		int(Engine.get_frames_per_second()),
+		monsters_sys.mons.size(),
+		towers_sys.footmen.size(),
+		rig.get_gpu_unit_count(),
+		rig.debris.size(),
+		rig.glow_count, rig.MAX_GLOW
+	)
 
 	fx.update_biome_look(rdt)
 	var lc := fx.look_cur
@@ -541,20 +556,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			game.switch_biome(ke.keycode - KEY_F1)
 			audio.play_sfx("ui_click", 0.7)
 			return
-		elif ke.keycode == KEY_F6:
+		elif ke.keycode == KEY_K:
 			var stress_types := ["skel", "rat", "slime", "spider", "ghoul", "knight", "bat", "wolf"]
 			for si in range(100):
 				monsters_sys.spawn(stress_types[si % stress_types.size()], 1.0, randf_range(0.5, 16.0))
 			audio.play_sfx("ui_click", 0.7)
-			print("[StressTest] Spawned +100 units | total_mons=%d | fps=%d" % [monsters_sys.mons.size(), Engine.get_frames_per_second()])
+			print("[StressTest] Spawned +100 units | total_mons=%d | fps=%d" % [monsters_sys.mons.size(), int(Engine.get_frames_per_second())])
 			return
-		elif ke.keycode == KEY_F7:
-			var box_n: int = rig.batches["box"].count
-			var sph_n: int = rig.batches["sphere"].count
-			print("[Perf] FPS=%d | mons=%d | footmen=%d | box=%d/%d | sphere=%d/%d | glow=%d/%d" % [
-				Engine.get_frames_per_second(), monsters_sys.mons.size(), towers_sys.footmen.size(),
-				box_n, rig.batches["box"].cap, sph_n, rig.batches["sphere"].cap, rig.glow_count, rig.MAX_GLOW
-			])
+		elif ke.keycode == KEY_L:
+			ui.toggle_perf_overlay()
+			audio.play_sfx("ui_click", 0.7)
 			return
 
 	if event.is_action_pressed("toggle_commander"):

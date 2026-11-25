@@ -50,7 +50,10 @@ var pixel_font: Font
 var icons: Dictionary = {}
 
 # Unified pixel HUD canvas (C2 & C4)
-var hud_canvas: Control
+@onready var hud_canvas: Control = %HudCanvas
+var show_perf: bool = false
+var perf_line1: String = ""
+var perf_line2: String = "" 
 var ui_s: int = 3
 
 # Interactive UI state
@@ -150,12 +153,25 @@ func _load_pixel_assets() -> void:
 
 
 func _build_hud_canvas() -> void:
-	hud_canvas = Control.new()
-	hud_canvas.set_anchors_preset(Control.PRESET_FULL_RECT)
-	hud_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_canvas.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	hud_canvas.draw.connect(_draw_hud)
-	add_child(hud_canvas)
+	if hud_canvas == null:
+		hud_canvas = Control.new()
+		hud_canvas.set_anchors_preset(Control.PRESET_FULL_RECT)
+		hud_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hud_canvas.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(hud_canvas)
+	if not hud_canvas.draw.is_connected(_draw_hud):
+		hud_canvas.draw.connect(_draw_hud)
+
+
+func toggle_perf_overlay() -> void:
+	show_perf = not show_perf
+
+
+func update_perf_overlay(fps: int, mons_n: int, foot_n: int, gpu_units: int, debris_n: int, glow_n: int, glow_cap: int) -> void:
+	if not show_perf:
+		return
+	perf_line1 = "FPS %d · Mons %d · Guards %d" % [fps, mons_n, foot_n]
+	perf_line2 = "GPU Units %d · Debris %d · Glow %d/%d" % [gpu_units, debris_n, glow_n, glow_cap]
 
 
 func _build_3d_rings(world_root: Node3D) -> void:
@@ -731,6 +747,8 @@ func _draw_hud() -> void:
 		if m.dead or m.dying > 0.0:
 			continue
 		var is_boss := bool(m.def.get("boss", false))
+		if not is_boss and m.hp >= m.max_hp * 0.999:
+			continue
 		var f := clampf(m.hp / maxf(m.max_hp, 1.0), 0.0, 1.0)
 		var wpos := Vector3(m.x, m.y + float(m.def["hit_h"]) * 1.65 + (0.65 if is_boss else 0.35), m.z)
 		var sp := _proj_world(wpos)
@@ -823,6 +841,14 @@ func _draw_hud() -> void:
 	var ic_cmd := "hand" if you else "helm"
 	var icw := _icon_size(ic_cmd).x * sf
 	var c_w := maxf(icw + 3.0 * sf + _tw(ct), _tw(cs)) + pad * 2.0 + 2.0 * sf
+	if show_perf and not perf_line1.is_empty():
+		var pw := maxf(_tw(perf_line1), _tw(perf_line2)) + pad * 2.0
+		var ph := lh * 2.0 + pad * 2.0 + sf
+		var py: float = 5.0 * sf + h_s + 4.0 * sf
+		PixelPanel.draw_plate(hud_canvas, 5.0 * sf, py, pw, ph, s, COL_BG, COL_BD)
+		_draw_px_text(perf_line1, 5.0 * sf + pad, py + pad, COL_AMBER, s)
+		_draw_px_text(perf_line2, 5.0 * sf + pad, py + pad + lh + sf, COL_TX, s)
+
 	var xc := W - c_w - 5.0 * sf
 	var g3 := 3.0 * sf
 	var xw := roundf(W * 0.5 - w_w * 0.5)
