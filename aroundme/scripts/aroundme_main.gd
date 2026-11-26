@@ -13,18 +13,27 @@ const MAX_IH := 620
 const MAX_PIX := 690000.0
 
 @export_group("Weather Presets")
+## 可循环切换的天气预设列表（拖入 .tres 资源即可扩展新天气）
 @export var weather_presets: Array[AroundMeWeatherPreset] = []
+## 进入场景时默认启用的天气预设索引（从 0 开始）
 @export var default_weather_index: int = 0
 
 @export_group("Grass Carpet")
+## 草丛之间的网格间距（米，越小草坪越密）
 @export_range(0.08, 0.35, 0.005) var grass_spacing: float = 0.135
+## 单簇草片的基础宽和高（米）
 @export var grass_blade_size: Vector2 = Vector2(0.48, 0.36)
+## 中心角色脚下自然泥土空地的基础半径（米）
 @export_range(0.5, 5.0, 0.1) var dirt_clearing_radius: float = 2.0
 
 @export_group("Depth of Field")
+## 是否默认开启移轴景深虚化效果
 @export var dof_enabled: bool = true
+## 远景开始虚化的离焦距离（米，越大清晰区越深）
 @export_range(1.0, 15.0, 0.2) var dof_far_start: float = 3.6
+## 远景从开始虚化到最大模糊的过渡距离（米）
 @export_range(4.0, 25.0, 0.5) var dof_far_range: float = 12.5
+## 景深允许的最大模糊半径上限（像素）
 @export_range(1.0, 10.0, 0.5) var dof_max_radius: float = 7.0
 
 @onready var sub_vp: SubViewport = %SubViewport
@@ -286,9 +295,6 @@ func get_weather_label() -> String:
 	return weather_ctrl.get_button_label()
 
 
-func is_lightning_enabled() -> bool:
-	return weather_ctrl.lightning_enabled
-
 
 func toggle_pause() -> void:
 	paused = not paused
@@ -314,11 +320,6 @@ func toggle_dof() -> void:
 
 func toggle_weather() -> void:
 	weather_ctrl.cycle_weather()
-	game.play_ui_click()
-
-
-func toggle_lightning() -> void:
-	weather_ctrl.toggle_lightning()
 	game.play_ui_click()
 
 

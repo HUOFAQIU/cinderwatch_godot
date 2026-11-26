@@ -118,10 +118,8 @@ func update_trampling(game: AroundMeGame) -> void:
 	var i := 0
 	while i < n and idx < MAX_TRAMPLE_UNITS:
 		var m := mons[i]
-		var mx := float(m["x"])
-		var mz := float(m["z"])
-		if mx * mx + mz * mz < 24.5 * 24.5:
-			_chars[idx] = Vector4(mx, float(m["y"]), mz, 0.95 * float(m["def"]["scale"]))
+		if m.pos.x * m.pos.x + m.pos.z * m.pos.z < 24.5 * 24.5:
+			_chars[idx] = Vector4(m.pos.x, m.pos.y, m.pos.z, 0.95 * m.archetype.visual_scale)
 			idx += 1
 		i += step
 	grass_mat.set_shader_parameter("character_positions", _chars)

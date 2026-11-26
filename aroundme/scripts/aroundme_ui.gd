@@ -32,7 +32,6 @@ var _ic_mute: Texture2D
 @onready var mute_btn: Button = %MuteBtn
 @onready var dof_btn: Button = %DofBtn
 @onready var weather_btn: Button = %WeatherBtn
-@onready var bolt_btn: Button = %BoltBtn
 @onready var perf_plate: PanelContainer = %PerfPlate
 @onready var perf_line1: Label = %PerfLine1
 @onready var perf_line2: Label = %PerfLine2
@@ -64,7 +63,6 @@ func init_ui(main_ref: AroundMeMain, game_ref: AroundMeGame, cam_ref: Camera3D, 
 	mute_btn.pressed.connect(func(): _main.toggle_mute())
 	dof_btn.pressed.connect(func(): _main.toggle_dof())
 	weather_btn.pressed.connect(func(): _main.toggle_weather())
-	bolt_btn.pressed.connect(func(): _main.toggle_lightning())
 	perf_plate.visible = false
 	banner_lbl.visible = false
 
@@ -105,7 +103,6 @@ func update_ui(_dt: float) -> void:
 	mute_btn.icon = _ic_mute if _game.muted else _ic_sound
 	dof_btn.text = "DOF:ON" if _main.dof_enabled else "DOF:OFF"
 	weather_btn.text = _main.get_weather_label()
-	bolt_btn.text = "LTG:ON" if _main.is_lightning_enabled() else "LTG:OFF"
 
 	if _game.soldier_dead:
 		banner_lbl.visible = true
@@ -147,11 +144,11 @@ func _on_overlay_draw() -> void:
 
 	var drawn := 0
 	for m in _game.mons:
-		var hp := float(m["hp"])
-		var mhp := float(m["max_hp"])
+		var hp := m.hp
+		var mhp := m.max_hp
 		if hp >= mhp - 0.01:
 			continue
-		var mp := Vector3(float(m["x"]), float(m["y"]) + float(m["def"]["hit_h"]) + 0.45, float(m["z"]))
+		var mp := m.pos + Vector3(0.0, m.archetype.hit_height + 0.45, 0.0)
 		var sp := _world_to_screen(mp)
 		var bw := 11.0 * s
 		var bh := 1.5 * s

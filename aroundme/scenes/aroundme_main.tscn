@@ -13,6 +13,14 @@
 [ext_resource type="Texture2D" path="res://aroundme/assets/icons/sound.png" id="11_fn4jk"]
 [ext_resource type="Resource" path="res://aroundme/assets/weather/weather_sunny_morning.tres" id="12_wsun"]
 [ext_resource type="Resource" path="res://aroundme/assets/weather/weather_storm_rain.tres" id="13_wrain"]
+[ext_resource type="Resource" path="res://aroundme/assets/mobs/mob_rat.tres" id="14_mrat"]
+[ext_resource type="Resource" path="res://aroundme/assets/mobs/mob_skel.tres" id="15_mskel"]
+[ext_resource type="Resource" path="res://aroundme/assets/mobs/mob_slime.tres" id="16_mslime"]
+[ext_resource type="Resource" path="res://aroundme/assets/mobs/mob_spider.tres" id="17_mspider"]
+[ext_resource type="Resource" path="res://aroundme/assets/mobs/mob_ghoul.tres" id="18_mghoul"]
+[ext_resource type="Resource" path="res://aroundme/assets/mobs/mob_wolf.tres" id="19_mwolf"]
+[ext_resource type="Resource" path="res://aroundme/assets/mobs/mob_knight.tres" id="20_mknight"]
+[ext_resource type="Resource" path="res://aroundme/assets/mobs/mob_brute.tres" id="21_mbrute"]
 
 [sub_resource type="Environment" id="Environment_53d0w"]
 background_mode = 1
@@ -72,6 +80,7 @@ unique_name_in_owner = true
 [node name="AroundMeGame" type="Node3D" parent="SubViewport/World" unique_id=1281625064]
 unique_name_in_owner = true
 script = ExtResource("3_x5m21")
+mob_archetypes = Array[Resource]([ExtResource("14_mrat"), ExtResource("15_mskel"), ExtResource("16_mslime"), ExtResource("17_mspider"), ExtResource("18_mghoul"), ExtResource("19_mwolf"), ExtResource("20_mknight"), ExtResource("21_mbrute")])
 
 [node name="PostProcessRect" type="TextureRect" parent="." unique_id=1775917440]
 unique_name_in_owner = true
@@ -189,7 +198,7 @@ text = "0"
 layout_mode = 0
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -224.0
+offset_left = -172.0
 offset_top = 5.0
 offset_right = -5.0
 offset_bottom = 22.0
@@ -227,13 +236,6 @@ custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
 focus_mode = 0
 text = "SUN"
-
-[node name="BoltBtn" type="Button" parent="AroundMeUI/HudRoot/CtrlBox" unique_id=344168671]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(48, 0)
-layout_mode = 2
-focus_mode = 0
-text = "LTG:ON"
 
 [node name="PerfPlate" type="PanelContainer" parent="AroundMeUI/HudRoot" unique_id=1046652962]
 unique_name_in_owner = true
