@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://dch3mdlcvcqtb"
+path="res://.godot/imported/pixel9.fnt-182684f38d02e4ef8e9d182bdbd2f481.fontdata"
+
+[deps]
+
+source_file="res://aroundme/assets/fonts/pixel9.fnt"
+dest_files=["res://.godot/imported/pixel9.fnt-182684f38d02e4ef8e9d182bdbd2f481.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2

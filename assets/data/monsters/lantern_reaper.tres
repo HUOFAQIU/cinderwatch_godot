@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CWMonsterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/monster_data.gd" id="1_1g8ix"]
+
+[resource]
+script = ExtResource("1_1g8ix")
+id = "lantern_reaper"
+display_name = "Lantern Reaper"
+tip = "Carries a soul lantern that hastens nearby foes and shrugs off arrows."
+hp = 210.0
+spd = 1.05
+bounty = 22
+lives = 2
+dmg = 18.0
+atk_t = 1.15
+armor = 0.3
+slow_res = 0.25
+unit_scale = 1.25
+hit_h = 0.95
+col = Color(0.28, 0.72, 0.62, 1)
+eye = Color(0.4, 3.6, 2.4, 1)
+is_heavy = true
+aura_radius = 3.8
+aura_boost = 0.25
+extra_flags = {
+"hood": true,
+"weapon": true
+}

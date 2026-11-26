@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://aroundme/assets/models/meadow_ground.res" id="1_o6d3l"]
+[ext_resource type="ArrayMesh" path="res://aroundme/assets/models/meadow_props.res" id="2_xtk7u"]
+[ext_resource type="ArrayMesh" path="res://aroundme/assets/models/meadow_weeds.res" id="3_cdkv7"]
+
+[node name="MeadowMap" type="Node3D" unique_id=632938590]
+
+[node name="MeadowGround" type="MeshInstance3D" parent="." unique_id=1980692559]
+mesh = ExtResource("1_o6d3l")
+
+[node name="MeadowProps" type="MeshInstance3D" parent="." unique_id=527943346]
+mesh = ExtResource("2_xtk7u")
+
+[node name="MeadowWeeds" type="MeshInstance3D" parent="." unique_id=866450424]
+cast_shadow = 0
+mesh = ExtResource("3_cdkv7")

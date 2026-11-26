@@ -12,7 +12,7 @@ signal new_mob_spawned(mob_type: String)
 const MONSTER_IDS := [
 	"skel", "rat", "slime", "slimelet", "knight", "bat", "ghoul", "spider",
 	"scarab", "wolf", "bomber", "wraith", "toad", "wisp", "drummer", "gargoyle",
-	"necro", "mummy", "brute", "golem", "brood",
+	"necro", "mummy", "brute", "golem", "brood", "lantern_reaper",
 	"giant", "ogre", "jotun", "queen", "colossus", "king",
 ]
 
