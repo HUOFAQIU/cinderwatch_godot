@@ -2,7 +2,7 @@
 // Tuned for Cinderwatch AroundMe Morning Forest Clearing:
 // - Seamless velvety overlapping pixel-art grass carpet (5fps stepped wind waves)
 // - Cohesive 3-patch lush green palette + subtle sunlit sprout accents
-// - Real-time 64-unit trampling displacement + drifting morning cloud shadows
+// - Real-time 64-unit trampling displacement
 
 shader_type spatial;
 render_mode depth_prepass_alpha, depth_draw_opaque;
@@ -59,17 +59,6 @@ const int CHARACTER_COUNT = 64;
 uniform vec4 character_positions[64];
 uniform int character_active_count = 0;
 
-group_uniforms morning_clouds;
-uniform bool clouds_enabled = true;
-uniform sampler2D cloud_noise : repeat_enable;
-uniform float cloud_scale = 22.0;
-uniform float cloud_world_y = 22.0;
-uniform float cloud_speed = 0.042;
-uniform vec2 cloud_direction = vec2(0.82, 0.57);
-uniform vec3 u_light_dir = vec3(0.75, -0.55, 0.36);
-uniform float cloud_shadow_min = 0.42;
-uniform float cloud_diverge_angle = 14.0;
-
 group_uniforms lighting;
 uniform int cuts = 3;
 uniform float wrap = 0.28;
@@ -116,23 +105,6 @@ mat4 view_space_rotate(float angle) {
 		vec4(0.0, 0.0, 1.0, 0.0),
 		vec4(0.0, 0.0, 0.0, 1.0)
 	);
-}
-
-float get_cloud_noise(vec3 wpos) {
-	if (!clouds_enabled) {
-		return 1.0;
-	}
-	float ly = abs(u_light_dir.y) > 0.05 ? u_light_dir.y : -0.55;
-	float t = (cloud_world_y - wpos.y) / ly;
-	vec3 hit_pos = wpos + t * u_light_dir;
-	float inv_scale = 1.0 / max(cloud_scale, 1.0);
-	vec2 d1 = normalize(rotate_vec2(cloud_direction, cloud_diverge_angle));
-	vec2 d2 = normalize(rotate_vec2(cloud_direction, -cloud_diverge_angle));
-	float s1 = texture(cloud_noise, hit_pos.xz * inv_scale + TIME * cloud_speed * d1).r;
-	float s2 = texture(cloud_noise, hit_pos.xz * (inv_scale * 0.8) + TIME * cloud_speed * d2 * 0.93).r;
-	float raw = s1 * 0.55 + s2 * 0.45;
-	float cloud_light = smoothstep(0.38, 0.64, raw);
-	return mix(cloud_shadow_min, 1.0, cloud_light);
 }
 
 void vertex() {
@@ -236,13 +208,10 @@ void fragment() {
 	vec4 albedo_tex = texture(albedo_texture, uv);
 	float n2 = texture(albedo2_noise, object_origin.xz * albedo2_scale).r;
 	float n3 = texture(albedo3_noise, object_origin.xz * albedo3_scale).r;
-	vec3 col = albedo1.rgb * albedo_tex.rgb;
-	if (n2 > albedo2_threshold) {
-		col = albedo2.rgb;
-	}
-	if (n3 > albedo3_threshold) {
-		col = albedo3.rgb;
-	}
+	float t2 = smoothstep(albedo2_threshold - 0.14, albedo2_threshold + 0.14, n2);
+	float t3 = smoothstep(albedo3_threshold - 0.14, albedo3_threshold + 0.14, n3);
+	vec3 col = mix(albedo1.rgb, albedo2.rgb, t2);
+	col = mix(col, albedo3.rgb, t3) * albedo_tex.rgb;
 	if (id_seed1 < accent_frequency1) {
 		albedo_tex = texture(accent_texture1, uv);
 		col = accent_albedo1.rgb * albedo_tex.rgb;
@@ -273,9 +242,6 @@ void light() {
 	float NdotL = max(dot(NORMAL, LIGHT), 0.0);
 	if (LIGHT_IS_DIRECTIONAL) {
 		float diffuse_amount = clamp((NdotL + wrap) * ATTENUATION * steepness, 0.0, 1.0);
-		vec3 vertex_world_pos = (INV_VIEW_MATRIX * vec4(model_origin, 1.0)).xyz;
-		float cloud_v = get_cloud_noise(vertex_world_pos);
-		diffuse_amount *= cloud_v;
 
 		float cut = 1.0 / float(max(cuts, 1));
 		float nearest_k = floor(diffuse_amount / cut + 0.5);

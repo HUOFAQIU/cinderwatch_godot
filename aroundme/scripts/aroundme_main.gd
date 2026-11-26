@@ -245,12 +245,6 @@ func _setup_grass_carpet() -> void:
 	grass_mat.set_shader_parameter("albedo2_noise", _make_seamless_noise(101, 0.018, 128))
 	grass_mat.set_shader_parameter("albedo3_noise", _make_seamless_noise(202, 0.015, 128))
 	grass_mat.set_shader_parameter("wind_noise", _make_seamless_noise(303, 0.024, 128))
-	grass_mat.set_shader_parameter("cloud_noise", _make_seamless_noise(404, 0.012, 128))
-
-	# Sync morning sun directional light vector for cloud shadow projection
-	var sun := world.get_node_or_null("MorningSunLight") as DirectionalLight3D
-	if sun != null:
-		grass_mat.set_shader_parameter("u_light_dir", -sun.global_basis.z)
 
 	# Build fine, ultra-dense MultiMesh grass carpet culled to the rotated isometric camera frustum
 	var rng := RandomNumberGenerator.new()
