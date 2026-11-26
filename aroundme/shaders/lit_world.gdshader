@@ -73,7 +73,7 @@ void fragment() {
 	}
 
 	// Biome surface cover (snow, moss, ash, sand): normal smoothing + snowdrift/sand-ripple micro-bump (10-gfx.js:211-220)
-	if (!u_is_instanced && u_cover.x > 0.01 && v_surf.w < 0.1) {
+	if (!u_is_instanced && u_cover.x > 0.01 && v_surf.w < 0.1 && layer > 0.5) {
 		vec3 wn_b = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
 		float n1 = cw_noise(v_wpos.xz * 0.8 + 17.0);
 		float n2 = cw_noise(v_wpos.xz * 3.4 + v_wpos.y * 1.3);
