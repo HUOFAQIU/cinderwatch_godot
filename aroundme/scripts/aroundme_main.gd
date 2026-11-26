@@ -223,7 +223,7 @@ func _setup_braziers() -> void:
 		var fpos := Vector3(bp.x, gy + 1.05, bp.z)
 
 		var ol := OmniLight3D.new()
-		ol.position = fpos + Vector3(0.0, 0.45, 0.0)
+		ol.position = fpos + Vector3(0.0, 0.85, 0.0)
 		ol.light_color = Color(1.0, 0.60, 0.22, 1.0)
 		ol.light_energy = 4.6
 		ol.omni_range = 15.0
