@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="AroundMeWeatherPreset" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://aroundme/scripts/weather_preset.gd" id="1_wp"]
+
+[resource]
+script = ExtResource("1_wp")
+id = "sun"
+button_label = "SUN"
+sun_color = Color(1, 0.91, 0.72, 1)
+sun_energy = 1.8
+fill_color = Color(0.58, 0.8, 1, 1)
+fill_energy = 0.56
+ambient_color = Color(0.66, 0.74, 0.66, 1)
+ambient_energy = 0.58
+background_color = Color(0.14, 0.22, 0.16, 1)
+mist_color = Color(0.52, 0.58, 0.46, 1)
+mist_base_y = -0.25
+mist_scale_h = 0.45
+mist_density = 0.72
+mist_gain = 0.065
+ground_wetness = 0.0
+grass_rain_amount = 0.0
+exposure = 0.96
+saturation = 0.9
+vignette = 0.34
+shadow_lift = Vector3(0.022, 0.024, 0.018)
+allow_lightning = false
+particle_ambient = Color(0.68, 0.78, 0.64, 1)
+particle_a_ratio = 0.32
+particle_a_vel = Vector3(0.3, -0.14, 0.16)
+particle_a_sway = Vector2(0.65, 0.75)
+particle_a_size = Vector2(0.028, 0.052)
+particle_a_color = Color(0.96, 0.96, 0.8, 1)
+particle_a_alpha = 0.65
+particle_a_twinkle = 0.0
+particle_a_stretch = 0.0
+particle_a_y_range = Vector2(-1.5, 11)
+particle_b_ratio = 0.12
+particle_b_vel = Vector3(0.24, -0.22, 0.18)
+particle_b_sway = Vector2(0.95, 1.15)
+particle_b_size = Vector2(0.042, 0.072)
+particle_b_color = Color(0.75, 0.92, 0.48, 0)
+particle_b_alpha = 1.0
+particle_b_twinkle = 2.2
+particle_b_stretch = 0.3
+particle_b_y_range = Vector2(-0.5, 6.5)

@@ -11,6 +11,8 @@
 [ext_resource type="Texture2D" path="res://aroundme/assets/icons/helm.png" id="9_k76y7"]
 [ext_resource type="Texture2D" path="res://aroundme/assets/icons/pause.png" id="10_ipuer"]
 [ext_resource type="Texture2D" path="res://aroundme/assets/icons/sound.png" id="11_fn4jk"]
+[ext_resource type="Resource" path="res://aroundme/assets/weather/weather_sunny_morning.tres" id="12_wsun"]
+[ext_resource type="Resource" path="res://aroundme/assets/weather/weather_storm_rain.tres" id="13_wrain"]
 
 [sub_resource type="Environment" id="Environment_53d0w"]
 background_mode = 1
@@ -25,6 +27,7 @@ glow_hdr_threshold = 1.45
 
 [node name="AroundMeMain" type="Node" unique_id=1667079122]
 script = ExtResource("1_m6844")
+weather_presets = Array[Resource]([ExtResource("12_wsun"), ExtResource("13_wrain")])
 
 [node name="SubViewport" type="SubViewport" parent="." unique_id=2113089904]
 unique_name_in_owner = true
@@ -40,7 +43,7 @@ unique_name_in_owner = true
 environment = SubResource("Environment_53d0w")
 
 [node name="MorningSunLight" type="DirectionalLight3D" parent="SubViewport/World" unique_id=695105418]
-transform = Transform3D(-0.5407577, 0.5944564, -0.5951499, 0, 0.7071068, 0.7071068, 0.8411784, 0.3823734, -0.3828195, -24, 28, -16)
+transform = Transform3D(-0.5407578, 0.594803, -0.594803, 0, 0.7071068, 0.7071068, 0.8411784, 0.3823735, -0.3823735, -24, 28, -16)
 light_color = Color(1, 0.91, 0.72, 1)
 light_energy = 1.8
 shadow_enabled = true
@@ -186,7 +189,7 @@ text = "0"
 layout_mode = 0
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -130.0
+offset_left = -224.0
 offset_top = 5.0
 offset_right = -5.0
 offset_bottom = 22.0
@@ -217,6 +220,20 @@ custom_minimum_size = Vector2(44, 0)
 layout_mode = 2
 focus_mode = 0
 text = "DOF:ON"
+
+[node name="WeatherBtn" type="Button" parent="AroundMeUI/HudRoot/CtrlBox" unique_id=344168670]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 0)
+layout_mode = 2
+focus_mode = 0
+text = "SUN"
+
+[node name="BoltBtn" type="Button" parent="AroundMeUI/HudRoot/CtrlBox" unique_id=344168671]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+focus_mode = 0
+text = "LTG:ON"
 
 [node name="PerfPlate" type="PanelContainer" parent="AroundMeUI/HudRoot" unique_id=1046652962]
 unique_name_in_owner = true

@@ -8,15 +8,16 @@ shader_type spatial;
 render_mode depth_prepass_alpha, depth_draw_opaque;
 
 group_uniforms colours_and_textures;
+uniform float u_rain = 0.0;
 uniform sampler2D albedo_texture : source_color, filter_nearest;
-uniform vec4 albedo1 : source_color = vec4(0.32, 0.48, 0.14, 1.0);
+uniform vec4 albedo1 : source_color = vec4(0.39, 0.54, 0.16, 1.0);
 
 uniform vec4 albedo2 : source_color = vec4(0.46, 0.59, 0.19, 1.0);
 uniform float albedo2_scale = 0.065;
 uniform float albedo2_threshold = 0.52;
 uniform sampler2D albedo2_noise : repeat_enable;
 
-uniform vec4 albedo3 : source_color = vec4(0.39, 0.54, 0.16, 1.0);
+uniform vec4 albedo3 : source_color = vec4(0.42, 0.56, 0.17, 1.0);
 uniform float albedo3_scale = 0.055;
 uniform float albedo3_threshold = 0.50;
 uniform sampler2D albedo3_noise : repeat_enable;
@@ -130,11 +131,12 @@ void vertex() {
 
 	vec2 wd1 = normalize(rotate_vec2(wind_noise_direction, noise_diverge_angle));
 	vec2 wd2 = normalize(rotate_vec2(wind_noise_direction, -noise_diverge_angle));
-	float wn1 = texture(wind_noise, object_origin.xz * wind_noise_scale + time * wind_noise_speed * wd1).r;
-	float wn2 = texture(wind_noise, object_origin.xz * (wind_noise_scale * 0.8) + time * wind_noise_speed * wd2 * 0.93).r;
+	float w_spd = wind_noise_speed * mix(1.0, 1.8, u_rain);
+	float wn1 = texture(wind_noise, object_origin.xz * wind_noise_scale + time * w_spd * wd1).r;
+	float wn2 = texture(wind_noise, object_origin.xz * (wind_noise_scale * 0.8) + time * w_spd * wd2 * 0.93).r;
 	wind_noise_sample = (clamp(wn1 * wn2 + wind_noise_threshold, 0.0, 1.0) - 0.5) * 2.0;
 
-	float world_sway = wind_noise_sample * radians(world_sway_angle);
+	float world_sway = wind_noise_sample * radians(world_sway_angle * mix(1.0, 1.28, u_rain));
 	vec3 wind_world_axis = (vec4(wind_noise_direction.y, 0.0, -wind_noise_direction.x, 0.0) * INV_VIEW_MATRIX).xyz;
 	if (length(wind_world_axis) < 0.001) {
 		wind_world_axis = vec3(1.0, 0.0, 0.0);
@@ -229,8 +231,9 @@ void fragment() {
 	float edge_t = clamp((r - 22.0) / 10.0, 0.0, 1.0);
 	col = mix(col, col * 0.86, edge_t);
 
+	col = mix(col, col * vec3(0.72, 0.84, 0.88), u_rain * 0.78);
 	ALBEDO = col;
-	ROUGHNESS = 0.92;
+	ROUGHNESS = mix(0.92, 0.50, u_rain);
 	// Soft ambient bounce so dense grass stays velvety instead of crushing black in SSAO
 	EMISSION = col * vec3(0.055, 0.065, 0.035);
 	LIGHT_VERTEX = model_origin;

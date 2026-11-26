@@ -1,17 +1,16 @@
 class_name AroundMeGame
 extends Node3D
 
-# Self-contained Morning Forest Clearing survival logic under res://aroundme/
-# High-capacity spatial-hash crowd simulation supporting 1000+ monsters walking in from outside the map.
+## Self-contained Morning Forest Clearing survival simulation under res://aroundme/
+## High-capacity spatial-hash crowd simulation supporting 2000 monsters;
+## delegates audio to AroundMeSfxPool and sparks/debris to AroundMeFxPool.
 
 const SPAWN_RADIUS_MIN := 23.0
 const SPAWN_RADIUS_MAX := 30.5
 const MAX_MONS := 2000
 const BATCH_CAP := 512
-const MAX_DEBRIS := 260
-const MAX_SPARKS := 260
 const GRID_CELL := 1.25
-const SWING_IMPACT_U := 0.52  # Matches lit_unit.gdshader strike peak (0.40..0.65)
+const SWING_IMPACT_U := 0.52
 
 const MOB_TYPES: Array[Dictionary] = [
 	{"id": "rat",    "hp": 22.0,  "spd": 3.45, "dmg": 4.0,  "cd": 0.90, "reach": 1.15, "scale": 0.92, "hit_h": 0.42, "col": Color(0.50, 0.42, 0.34), "min_w": 1},
@@ -24,20 +23,21 @@ const MOB_TYPES: Array[Dictionary] = [
 	{"id": "brute",  "hp": 135.0, "spd": 1.55, "dmg": 15.0, "cd": 1.48, "reach": 1.52, "scale": 1.22, "hit_h": 1.18, "col": Color(0.54, 0.36, 0.30), "min_w": 4},
 ]
 
-# Soldier (center hero — non-controllable, auto-targets & counterattacks)
+@export_group("Soldier")
+@export var soldier_max_hp: float = 360.0
+@export var soldier_range: float = 2.65
+@export var soldier_dmg: float = 30.0
+@export var soldier_atk_period: float = 0.56
+
 var soldier_pos := Vector3.ZERO
 var soldier_yaw: float = 0.0
 var soldier_hp: float = 360.0
-var soldier_max_hp: float = 360.0
 var soldier_cd: float = 0.0
 var soldier_swing: float = 0.0
 var soldier_hit_pending: bool = false
 var soldier_flash: float = 0.0
 var soldier_dead: bool = false
 var soldier_respawn_t: float = 0.0
-var soldier_range: float = 2.65
-var soldier_dmg: float = 30.0
-var soldier_atk_period: float = 0.56
 
 var wave: int = 1
 var kills: int = 0
@@ -45,86 +45,36 @@ var elapsed: float = 0.0
 var _spawn_cd: float = 0.45
 var shake_mag: float = 0.0
 var shake_offset := Vector2.ZERO
-var muted: bool = false
 
-# Perf metrics for L overlay
+var muted: bool:
+	get: return _sfx.muted
+
 var perf_sim_ms: float = 0.0
 var perf_batch_ms: float = 0.0
 
 var mons: Array[Dictionary] = []
 var _grid: Dictionary = {}
-
-# GPU MultiMesh unit batches
 var _mat_unit: ShaderMaterial
 var _batches: Dictionary = {}
 
-# FX pools
-var _debris_mm: MultiMesh
-var _debris_buf := PackedFloat32Array()
-var _debris: Array[Dictionary] = []
-
-var _sparks_mm: MultiMesh
-var _sparks_buf := PackedFloat32Array()
-var _sparks: Array[Dictionary] = []
-
-# Audio pool
-var _sfx_streams: Dictionary = {}
-var _sfx_players: Array[AudioStreamPlayer] = []
-var _sfx_idx: int = 0
-var _last_sfx_ms: Dictionary = {}
+var _sfx := AroundMeSfxPool.new()
+var _fx := AroundMeFxPool.new()
 
 
 func init_game(mat_unit: ShaderMaterial) -> void:
 	_mat_unit = mat_unit
-	_init_audio()
+	_sfx.init(self, ["sword", "clash", "hit", "kill", "horn", "ui_click"], 10)
 	_init_unit_batches()
-	_init_fx_pools()
+	_fx.init(self)
 	reset_run()
 
 
-func _init_audio() -> void:
-	var names := ["sword", "clash", "hit", "kill", "horn", "ui_click"]
-	for nm in names:
-		var path := "res://aroundme/assets/audio/%s.wav" % nm
-		if ResourceLoader.exists(path):
-			_sfx_streams[nm] = load(path)
-	for _i in range(10):
-		var ap := AudioStreamPlayer.new()
-		add_child(ap)
-		_sfx_players.append(ap)
-
-
-func set_muted(v: bool) -> void:
-	muted = v
-	if muted:
-		for ap in _sfx_players:
-			ap.stop()
-
-
 func toggle_mute() -> void:
-	set_muted(not muted)
-	if not muted:
-		play_ui_click()
+	_sfx.toggle_mute()
 
 
 func play_ui_click() -> void:
-	_play_sfx("ui_click", 0.65)
-
-
-func _play_sfx(nm: String, vol: float = 0.6) -> void:
-	if muted or not _sfx_streams.has(nm) or _sfx_players.is_empty():
-		return
-	var now := Time.get_ticks_msec()
-	var prev: int = int(_last_sfx_ms.get(nm, 0))
-	if now - prev < 65 and nm != "ui_click":
-		return
-	_last_sfx_ms[nm] = now
-	var ap := _sfx_players[_sfx_idx % _sfx_players.size()]
-	_sfx_idx += 1
-	ap.stream = _sfx_streams[nm]
-	ap.volume_db = linear_to_db(clampf(vol, 0.01, 1.0))
-	ap.pitch_scale = randf_range(0.92, 1.08)
-	ap.play()
+	_sfx.play("ui_click", 0.65)
 
 
 func _create_batch(key: String, mesh_path: String, cap: int) -> void:
@@ -158,52 +108,6 @@ func _init_unit_batches() -> void:
 		_create_batch(mid, "res://aroundme/assets/models/units/%s.res" % mid, BATCH_CAP)
 
 
-func _init_fx_pools() -> void:
-	var box := BoxMesh.new()
-	box.size = Vector3.ONE
-	_debris_mm = MultiMesh.new()
-	_debris_mm.transform_format = MultiMesh.TRANSFORM_3D
-	_debris_mm.use_colors = true
-	_debris_mm.mesh = box
-	_debris_mm.instance_count = MAX_DEBRIS
-	_debris_mm.visible_instance_count = 0
-	_debris_buf.resize(MAX_DEBRIS * 16)
-	var dmmi := MultiMeshInstance3D.new()
-	dmmi.multimesh = _debris_mm
-	var dmat := StandardMaterial3D.new()
-	dmat.vertex_color_use_as_albedo = true
-	dmat.roughness = 0.85
-	dmmi.material_override = dmat
-	dmmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	dmmi.extra_cull_margin = 16384.0
-	add_child(dmmi)
-
-	var sq := QuadMesh.new()
-	sq.size = Vector2(0.18, 0.18)
-	_sparks_mm = MultiMesh.new()
-	_sparks_mm.transform_format = MultiMesh.TRANSFORM_3D
-	_sparks_mm.use_colors = true
-	_sparks_mm.mesh = sq
-	_sparks_mm.instance_count = MAX_SPARKS
-	_sparks_mm.visible_instance_count = 0
-	_sparks_buf.resize(MAX_SPARKS * 16)
-	var smmi := MultiMeshInstance3D.new()
-	smmi.multimesh = _sparks_mm
-	var smat := StandardMaterial3D.new()
-	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	smat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	smat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	smat.vertex_color_use_as_albedo = true
-	smat.no_depth_test = false
-	if ResourceLoader.exists("res://aroundme/assets/textures/particle_soft.png"):
-		smat.albedo_texture = load("res://aroundme/assets/textures/particle_soft.png")
-	smmi.material_override = smat
-	smmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	smmi.extra_cull_margin = 16384.0
-	add_child(smmi)
-
-
 func height_at(x: float, z: float) -> float:
 	var r := sqrt(x * x + z * z)
 	var center_flat := clampf((r - 3.2) / 4.2, 0.0, 1.0)
@@ -214,8 +118,7 @@ func height_at(x: float, z: float) -> float:
 
 func reset_run() -> void:
 	mons.clear()
-	_debris.clear()
-	_sparks.clear()
+	_fx.clear()
 	soldier_pos = Vector3(0.0, height_at(0.0, 0.0), 0.0)
 	soldier_yaw = 0.0
 	soldier_hp = soldier_max_hp
@@ -231,9 +134,8 @@ func reset_run() -> void:
 	_spawn_cd = 0.4
 	shake_mag = 0.0
 	shake_offset = Vector2.ZERO
-	_play_sfx("horn", 0.45)
+	_sfx.play("horn", 0.45)
 
-	# Pre-seed an initial ring of 12 monsters ALREADY walking in from outside the map perimeter
 	for i in range(12):
 		_spawn_outer_monster(TAU * float(i) / 12.0 + randf_range(-0.18, 0.18), false)
 
@@ -289,37 +191,6 @@ func get_gpu_unit_count() -> int:
 	return total
 
 
-func _spawn_sparks(pos: Vector3, count: int, col: Color, spd: float = 3.8) -> void:
-	for _i in range(count):
-		if _sparks.size() >= MAX_SPARKS:
-			break
-		var d := Vector3(randf_range(-1, 1), randf_range(0.35, 1.3), randf_range(-1, 1)).normalized()
-		_sparks.append({
-			"p": pos,
-			"v": d * randf_range(spd * 0.45, spd),
-			"col": col,
-			"t": 0.0,
-			"dur": randf_range(0.18, 0.38),
-			"sz": randf_range(0.7, 1.4),
-		})
-
-
-func _shatter(pos: Vector3, sc: float, col: Color, dir: Vector3) -> void:
-	var n := mini(5, MAX_DEBRIS - _debris.size())
-	for _i in range(n):
-		var v := dir + Vector3(randf_range(-2.2, 2.2), randf_range(1.8, 4.4), randf_range(-2.2, 2.2))
-		_debris.append({
-			"p": pos + Vector3(randf_range(-0.2, 0.2), randf_range(0.15, 0.7), randf_range(-0.2, 0.2)),
-			"v": v,
-			"r": Vector3(randf() * TAU, randf() * TAU, randf() * TAU),
-			"rv": Vector3(randf_range(-8, 8), randf_range(-8, 8), randf_range(-8, 8)),
-			"sz": randf_range(0.10, 0.20) * sc,
-			"col": col * randf_range(0.85, 1.15),
-			"t": 0.0,
-			"dur": randf_range(0.45, 0.85),
-		})
-
-
 func _push_unit(key: String, x: float, y: float, z: float, yaw: float, sc: float, ph: float, sw: float, fl: float, mv: float) -> void:
 	if not _batches.has(key):
 		return
@@ -357,22 +228,22 @@ func _resolve_soldier_strike() -> void:
 				var dn := Vector3(mx, 0.0, mz).normalized()
 				m["x"] = mx + dn.x * 0.28
 				m["z"] = mz + dn.z * 0.28
-				_spawn_sparks(Vector3(mx, float(m["y"]) + float(m["def"]["hit_h"]), mz), 4, Color(2.4, 1.7, 0.6), 4.0)
+				_fx.spawn_sparks(Vector3(mx, float(m["y"]) + float(m["def"]["hit_h"]), mz), 4, Color(2.4, 1.7, 0.6), 4.0)
 				if float(m["hp"]) <= 0.0:
 					kills += 1
 					killed_any = true
-					_shatter(Vector3(mx, float(m["y"]), mz), float(m["def"]["scale"]), m["def"]["col"], dn * 2.8)
+					_fx.spawn_shatter(Vector3(mx, float(m["y"]), mz), float(m["def"]["scale"]), m["def"]["col"], dn * 2.8)
 					shake_mag = minf(0.40, shake_mag + 0.07)
 					mons.remove_at(i)
 				hit_n += 1
 				if hit_n >= max_cleave:
 					break
 	if hit_n > 0:
-		_play_sfx("sword", 0.48)
+		_sfx.play("sword", 0.48)
 		if killed_any:
-			_play_sfx("kill", 0.42)
+			_sfx.play("kill", 0.42)
 	else:
-		_play_sfx("sword", 0.25)
+		_sfx.play("sword", 0.25)
 
 
 func step_sim(dt: float) -> void:
@@ -384,17 +255,15 @@ func step_sim(dt: float) -> void:
 	var sh := shake_mag * shake_mag * 0.22
 	shake_offset = Vector2(sin(elapsed * 47.0), cos(elapsed * 53.0)) * sh if sh > 1e-5 else Vector2.ZERO
 
-	# Continuous outer-perimeter horde spawning
 	if not soldier_dead:
 		_spawn_cd -= dt
 		if _spawn_cd <= 0.0:
-			var pack := 2 + mini(4, wave / 2)
+			var pack := 2 + mini(4, int(float(wave) / 2.0))
 			var base_a := randf() * TAU
 			for _pi in range(pack):
 				_spawn_outer_monster(base_a + randf_range(-0.35, 0.35), false)
 			_spawn_cd = maxf(0.24, 1.05 - float(wave - 1) * 0.10) * randf_range(0.75, 1.25)
 
-	# Update center soldier (auto-target, face, synced windup -> strike impact)
 	soldier_flash = maxf(0.0, soldier_flash - dt * 5.0)
 	soldier_swing = maxf(0.0, soldier_swing - dt * 2.15)
 	if soldier_dead:
@@ -421,7 +290,6 @@ func step_sim(dt: float) -> void:
 			var diff := wrapf(tgt_yaw - soldier_yaw, -PI, PI)
 			soldier_yaw += clampf(diff, -dt * 12.0, dt * 12.0)
 
-			# Start windup when cooldown ready and target in range
 			if best_d2 <= soldier_range * soldier_range and soldier_cd <= 0.0 and not soldier_hit_pending:
 				soldier_cd = soldier_atk_period
 				soldier_swing = 1.0
@@ -429,7 +297,6 @@ func step_sim(dt: float) -> void:
 		else:
 			soldier_hp = minf(soldier_max_hp, soldier_hp + dt * 8.0)
 
-		# Fire damage + sword SFX at exact downward strike peak (atk_u >= SWING_IMPACT_U)
 		if soldier_hit_pending and (1.0 - soldier_swing) >= SWING_IMPACT_U:
 			soldier_hit_pending = false
 			_resolve_soldier_strike()
@@ -505,29 +372,26 @@ func step_sim(dt: float) -> void:
 			m["mv"] = 0.0
 			m["yaw"] = atan2(-mx, -mz)
 			if not soldier_dead:
-				# Begin monster attack windup
 				if float(m["cd"]) <= 0.0 and not bool(m["hit_pending"]):
 					m["cd"] = float(def["cd"])
 					m["swing"] = 1.0
 					m["hit_pending"] = true
-				# Resolve monster impact + SFX at strike peak
 				if bool(m["hit_pending"]) and (1.0 - float(m["swing"])) >= SWING_IMPACT_U:
 					m["hit_pending"] = false
 					soldier_hp = maxf(0.0, soldier_hp - float(def["dmg"]))
 					soldier_flash = 0.50
-					_play_sfx("clash", 0.30)
-					_spawn_sparks(soldier_pos + Vector3(0.0, 0.9, 0.0), 3, Color(2.0, 0.65, 0.45), 3.0)
+					_sfx.play("clash", 0.30)
+					_fx.spawn_sparks(soldier_pos + Vector3(0.0, 0.9, 0.0), 3, Color(2.0, 0.65, 0.45), 3.0)
 					if soldier_hp <= 0.0:
 						soldier_dead = true
 						soldier_respawn_t = 2.6
-						_shatter(soldier_pos, 1.2, Color(0.55, 0.68, 0.92), Vector3(0.0, 2.5, 0.0))
-						_play_sfx("kill", 0.65)
+						_fx.spawn_shatter(soldier_pos, 1.2, Color(0.55, 0.68, 0.92), Vector3(0.0, 2.5, 0.0))
+						_sfx.play("kill", 0.65)
 						shake_mag = 0.55
 
 	var t1 := Time.get_ticks_usec()
 	perf_sim_ms = float(t1 - t0) * 0.001
 
-	# Push GPU MultiMesh batches
 	for k in _batches.keys():
 		_batches[k]["cnt"] = 0
 	if not soldier_dead:
@@ -545,63 +409,5 @@ func step_sim(dt: float) -> void:
 		if cnt > 0:
 			mm.buffer = b["buf"]
 
-	_step_fx(dt)
+	_fx.step(dt, height_at)
 	perf_batch_ms = float(Time.get_ticks_usec() - t1) * 0.001
-
-
-func _step_fx(dt: float) -> void:
-	var dc := 0
-	for i in range(_debris.size() - 1, -1, -1):
-		var d := _debris[i]
-		d["t"] = float(d["t"]) + dt
-		if float(d["t"]) >= float(d["dur"]):
-			_debris.remove_at(i)
-			continue
-		var v: Vector3 = d["v"]
-		v.y -= 14.0 * dt
-		var p: Vector3 = d["p"] + v * dt
-		var gy := height_at(p.x, p.z)
-		if p.y < gy + 0.05:
-			p.y = gy + 0.05
-			v.y = absf(v.y) * 0.35
-			v.x *= 0.72; v.z *= 0.72
-		d["p"] = p; d["v"] = v
-		var r: Vector3 = d["r"] + (d["rv"] as Vector3) * dt
-		d["r"] = r
-		var fade := 1.0 - float(d["t"]) / float(d["dur"])
-		var s := float(d["sz"]) * clampf(fade * 1.6, 0.05, 1.0)
-		var bas := Basis.from_euler(r).scaled(Vector3(s, s, s))
-		var off := dc * 16
-		_debris_buf[off] = bas.x.x; _debris_buf[off + 1] = bas.y.x; _debris_buf[off + 2] = bas.z.x; _debris_buf[off + 3] = p.x
-		_debris_buf[off + 4] = bas.x.y; _debris_buf[off + 5] = bas.y.y; _debris_buf[off + 6] = bas.z.y; _debris_buf[off + 7] = p.y
-		_debris_buf[off + 8] = bas.x.z; _debris_buf[off + 9] = bas.y.z; _debris_buf[off + 10] = bas.z.z; _debris_buf[off + 11] = p.z
-		var col: Color = d["col"]
-		_debris_buf[off + 12] = col.r; _debris_buf[off + 13] = col.g; _debris_buf[off + 14] = col.b; _debris_buf[off + 15] = 1.0
-		dc += 1
-	_debris_mm.visible_instance_count = dc
-	if dc > 0:
-		_debris_mm.buffer = _debris_buf
-
-	var sc := 0
-	for i in range(_sparks.size() - 1, -1, -1):
-		var sp := _sparks[i]
-		sp["t"] = float(sp["t"]) + dt
-		if float(sp["t"]) >= float(sp["dur"]):
-			_sparks.remove_at(i)
-			continue
-		var v: Vector3 = sp["v"]
-		v.y -= 9.5 * dt
-		var p: Vector3 = sp["p"] + v * dt
-		sp["p"] = p; sp["v"] = v
-		var fade := 1.0 - float(sp["t"]) / float(sp["dur"])
-		var s := float(sp["sz"]) * fade
-		var off := sc * 16
-		_sparks_buf[off] = s; _sparks_buf[off + 1] = 0.0; _sparks_buf[off + 2] = 0.0; _sparks_buf[off + 3] = p.x
-		_sparks_buf[off + 4] = 0.0; _sparks_buf[off + 5] = s; _sparks_buf[off + 6] = 0.0; _sparks_buf[off + 7] = p.y
-		_sparks_buf[off + 8] = 0.0; _sparks_buf[off + 9] = 0.0; _sparks_buf[off + 10] = s; _sparks_buf[off + 11] = p.z
-		var col: Color = sp["col"]
-		_sparks_buf[off + 12] = col.r; _sparks_buf[off + 13] = col.g; _sparks_buf[off + 14] = col.b; _sparks_buf[off + 15] = fade
-		sc += 1
-	_sparks_mm.visible_instance_count = sc
-	if sc > 0:
-		_sparks_mm.buffer = _sparks_buf

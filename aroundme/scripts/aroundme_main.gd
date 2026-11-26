@@ -1,8 +1,9 @@
 class_name AroundMeMain
 extends Node
 
-# Self-contained Morning Forest Clearing survival mode under res://aroundme/
-# Full Cinderwatch half-res texel-snapped pixel-art pipeline with locked centered camera.
+## Self-contained Morning Forest Clearing survival mode under res://aroundme/
+## Thin scene coordinator: wires Inspector presets, camera texel-snapping,
+## modular WeatherController, GrassSystem, AroundMeGame, and AroundMeUI.
 
 const CAM_YAW := PI * 0.25
 const CAM_ELEV := deg_to_rad(38.0)
@@ -10,11 +11,27 @@ const CAM_DIST := 78.0
 const BASE_VIEW_H := 25.0
 const MAX_IH := 620
 const MAX_PIX := 690000.0
-const MAX_WX := 320
+
+@export_group("Weather Presets")
+@export var weather_presets: Array[AroundMeWeatherPreset] = []
+@export var default_weather_index: int = 0
+
+@export_group("Grass Carpet")
+@export_range(0.08, 0.35, 0.005) var grass_spacing: float = 0.135
+@export var grass_blade_size: Vector2 = Vector2(0.48, 0.36)
+@export_range(0.5, 5.0, 0.1) var dirt_clearing_radius: float = 2.0
+
+@export_group("Depth of Field")
+@export var dof_enabled: bool = true
+@export_range(1.0, 15.0, 0.2) var dof_far_start: float = 3.6
+@export_range(4.0, 25.0, 0.5) var dof_far_range: float = 12.5
+@export_range(1.0, 10.0, 0.5) var dof_max_radius: float = 7.0
 
 @onready var sub_vp: SubViewport = %SubViewport
 @onready var world: Node3D = %World
 @onready var world_env: WorldEnvironment = %WorldEnvironment
+@onready var sun_light: DirectionalLight3D = $SubViewport/World/MorningSunLight
+@onready var fill_light: DirectionalLight3D = $SubViewport/World/SkyFillLight
 @onready var cam: Camera3D = %Camera3D
 @onready var post_rect: TextureRect = %PostProcessRect
 @onready var meadow_map: Node3D = %MeadowMap
@@ -26,14 +43,13 @@ var ao_mat: ShaderMaterial
 var mist_mat: ShaderMaterial
 var dof_mat: ShaderMaterial
 var dof_mesh: MeshInstance3D
-var wx_mat: ShaderMaterial
 var mat_world: ShaderMaterial
 var mat_unit: ShaderMaterial
 var tex_albedo: Texture2DArray
 var tex_height: Texture2DArray
 
-var grass_mat: ShaderMaterial
-var _grass_chars: Array[Vector4] = []
+var grass_sys := AroundMeGrassSystem.new()
+var weather_ctrl := AroundMeWeatherController.new()
 
 var cam_base: float = BASE_VIEW_H
 var cam_aspect: float = 1.7778
@@ -41,17 +57,15 @@ var sub_texel := Vector2.ZERO
 var dither_ofs := Vector2.ZERO
 var screen_fade: float = 0.0
 var paused: bool = false
-var dof_enabled: bool = true
 var sim_speed: int = 1
-var _time: float = 0.0
 
 
 func _ready() -> void:
 	_init_shared_materials()
 	_apply_world_material(meadow_map)
 	_setup_viewport_and_post()
-	_setup_weather()
-	_setup_grass_carpet()
+	grass_sys.setup(world, game, grass_spacing, grass_blade_size, dirt_clearing_radius)
+	_init_weather_controller()
 	game.init_game(mat_unit)
 	ui.init_ui(self, game, cam, sub_vp)
 	_on_window_resize()
@@ -149,8 +163,6 @@ func _setup_viewport_and_post() -> void:
 		mist_mat = ShaderMaterial.new()
 		mist_mat.shader = mist_sh
 		mist_mat.render_priority = 126
-		mist_mat.set_shader_parameter("u_mist_amb", Vector3(0.52, 0.58, 0.46))
-		mist_mat.set_shader_parameter("u_mist", Vector4(-0.25, 0.45, 0.72, 0.065))
 		mist_mat.set_shader_parameter("u_light_count", 0)
 		mist_mesh.material_override = mist_mat
 		cam.add_child(mist_mesh)
@@ -165,165 +177,24 @@ func _setup_viewport_and_post() -> void:
 		dof_mat.shader = dof_sh
 		dof_mat.render_priority = -20
 		dof_mesh.material_override = dof_mat
+		dof_mesh.visible = dof_enabled
 		cam.add_child(dof_mesh)
 
 
-func _setup_weather() -> void:
-	var wx_sh := load("res://aroundme/shaders/weather.gdshader") as Shader
-	if wx_sh == null:
-		return
-	var qm := QuadMesh.new()
-	qm.size = Vector2.ONE
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_custom_data = true
-	mm.mesh = qm
-	mm.instance_count = MAX_WX
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 4242
-	for wi in range(MAX_WX):
-		mm.set_instance_transform(wi, Transform3D.IDENTITY)
-		mm.set_instance_custom_data(wi, Color(rng.randf(), rng.randf(), rng.randf(), (float(wi) + 0.5) / float(MAX_WX)))
-
-	wx_mat = ShaderMaterial.new()
-	wx_mat.shader = wx_sh
-	wx_mat.set_shader_parameter("u_amb", Vector3(0.68, 0.78, 0.64))
-	wx_mat.set_shader_parameter("u_n", Vector2(0.40, 0.18))
-	wx_mat.set_shader_parameter("u_vel_a", Vector3(0.30, -0.14, 0.16))
-	wx_mat.set_shader_parameter("u_vel_b", Vector3(0.24, -0.22, 0.18))
-	wx_mat.set_shader_parameter("u_sway_a", Vector2(0.65, 0.75))
-	wx_mat.set_shader_parameter("u_sway_b", Vector2(0.95, 1.15))
-	wx_mat.set_shader_parameter("u_size_a", Vector2(0.028, 0.052))
-	wx_mat.set_shader_parameter("u_size_b", Vector2(0.042, 0.072))
-	wx_mat.set_shader_parameter("u_col_a", Vector4(0.96, 0.96, 0.80, 1.0))
-	wx_mat.set_shader_parameter("u_col_b", Vector4(0.75, 0.92, 0.48, 0.0))
-	wx_mat.set_shader_parameter("u_al_a", Vector3(0.65, 0.0, 0.0))
-	wx_mat.set_shader_parameter("u_al_b", Vector3(1.0, 2.2, 0.3))
-	wx_mat.set_shader_parameter("u_ya", Vector2(-1.5, 11.0))
-	wx_mat.set_shader_parameter("u_yb", Vector2(-0.5, 6.5))
-	wx_mat.set_shader_parameter("u_light_count", 0)
-	wx_mat.set_shader_parameter("u_focus_dist", CAM_DIST)
-
-	var mmi := MultiMeshInstance3D.new()
-	mmi.multimesh = mm
-	mmi.material_override = wx_mat
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mmi.extra_cull_margin = 16384.0
-	world.add_child(mmi)
-
-func _make_seamless_noise(seed_val: int, freq: float, tex_sz: int = 128) -> NoiseTexture2D:
-	var fn := FastNoiseLite.new()
-	fn.seed = seed_val
-	fn.frequency = freq
-	fn.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	var nt := NoiseTexture2D.new()
-	nt.width = tex_sz
-	nt.height = tex_sz
-	nt.seamless = true
-	nt.noise = fn
-	return nt
-
-
-func _setup_grass_carpet() -> void:
-	var g_sh := load("res://aroundme/shaders/dusk_grass.gdshader") as Shader
-	if g_sh == null:
-		return
-
-	_grass_chars.resize(64)
-	for ci in range(64):
-		_grass_chars[ci] = Vector4(0.0, -999.0, 0.0, 0.1)
-
-	grass_mat = ShaderMaterial.new()
-	grass_mat.shader = g_sh
-	if ResourceLoader.exists("res://aroundme/assets/textures/grassleaf.png"):
-		var gtex := load("res://aroundme/assets/textures/grassleaf.png")
-		grass_mat.set_shader_parameter("albedo_texture", gtex)
-		grass_mat.set_shader_parameter("accent_texture1", gtex)
-	if ResourceLoader.exists("res://aroundme/assets/textures/accentleaf.png"):
-		grass_mat.set_shader_parameter("accent_texture2", load("res://aroundme/assets/textures/accentleaf.png"))
-
-	grass_mat.set_shader_parameter("albedo2_noise", _make_seamless_noise(101, 0.018, 128))
-	grass_mat.set_shader_parameter("albedo3_noise", _make_seamless_noise(202, 0.015, 128))
-	grass_mat.set_shader_parameter("wind_noise", _make_seamless_noise(303, 0.024, 128))
-
-	# Build fine, ultra-dense MultiMesh grass carpet culled to the rotated isometric camera frustum
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 20261126
-	var spacing := 0.135
-	var half := 33.0
-	var inv_s2 := 0.70710678
-	var buf := PackedFloat32Array()
-	var cnt := 0
-	var gx := -half
-	while gx <= half:
-		var gz := -half
-		while gz <= half:
-			var x := gx + rng.randf_range(-0.065, 0.065)
-			var z := gz + rng.randf_range(-0.065, 0.065)
-			# Frustum-cull to visible isometric diamond so off-screen corners cost 0 GPU
-			var u := absf((x - z) * inv_s2)
-			var v := absf((x + z) * inv_s2)
-			if u <= 25.0 and v <= 23.5:
-				var r := sqrt(x * x + z * z)
-				var ang := atan2(z, x)
-				var dr := 2.0 + 0.45 * sin(ang * 2.0 + 0.7) + 0.30 * cos(ang * 3.0 - 0.9) + 0.18 * sin(ang * 5.0 + 1.4)
-				var edge_f := clampf((r - (dr - 0.25)) / 1.15, 0.0, 1.0)
-				if edge_f > 0.0 and (edge_f >= 1.0 or rng.randf() < edge_f * edge_f):
-					var y := game.height_at(x, z)
-					var sc_x := rng.randf_range(0.85, 1.15) * lerpf(0.72, 1.0, edge_f)
-					var sc_y := rng.randf_range(0.80, 1.15) * lerpf(0.65, 1.0, edge_f)
-					var off := cnt * 12
-					if buf.size() < off + 12:
-						buf.resize(maxi(buf.size() * 2, 120000))
-					buf[off] = sc_x; buf[off + 1] = 0.0; buf[off + 2] = 0.0; buf[off + 3] = x
-					buf[off + 4] = 0.0; buf[off + 5] = sc_y; buf[off + 6] = 0.0; buf[off + 7] = y
-					buf[off + 8] = 0.0; buf[off + 9] = 0.0; buf[off + 10] = 1.0; buf[off + 11] = z
-					cnt += 1
-			gz += spacing
-		gx += spacing
-
-	buf.resize(cnt * 12)
-	var qm := QuadMesh.new()
-	qm.size = Vector2(0.48, 0.36)
-	qm.center_offset = Vector3(0.0, 0.13, 0.0)
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = qm
-	mm.instance_count = cnt
-	if cnt > 0:
-		mm.buffer = buf
-
-	var mmi := MultiMeshInstance3D.new()
-	mmi.name = "ForestGrassCarpet"
-	mmi.multimesh = mm
-	mmi.material_override = grass_mat
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mmi.extra_cull_margin = 16384.0
-	world.add_child(mmi)
-
-
-func _update_grass_trampling() -> void:
-	if grass_mat == null:
-		return
-	var idx := 0
-	if not game.soldier_dead:
-		_grass_chars[0] = Vector4(game.soldier_pos.x, game.soldier_pos.y, game.soldier_pos.z, 1.35)
-		idx = 1
-	var mons := game.mons
-	var n := mons.size()
-	var step := maxi(1, n / 63)
-	var i := 0
-	while i < n and idx < 64:
-		var m := mons[i]
-		var mx := float(m["x"])
-		var mz := float(m["z"])
-		if mx * mx + mz * mz < 24.5 * 24.5:
-			_grass_chars[idx] = Vector4(mx, float(m["y"]), mz, 0.95 * float(m["def"]["scale"]))
-			idx += 1
-		i += step
-	grass_mat.set_shader_parameter("character_positions", _grass_chars)
-	grass_mat.set_shader_parameter("character_active_count", idx)
-
+func _init_weather_controller() -> void:
+	var list: Array[AroundMeWeatherPreset] = weather_presets
+	if list.is_empty():
+		var sun_res := load("res://aroundme/assets/weather/weather_sunny_morning.tres") as AroundMeWeatherPreset
+		var rain_res := load("res://aroundme/assets/weather/weather_storm_rain.tres") as AroundMeWeatherPreset
+		if sun_res != null:
+			list.append(sun_res)
+		if rain_res != null:
+			list.append(rain_res)
+	weather_ctrl.init(
+		world, list, default_weather_index, CAM_DIST,
+		world_env, sun_light, fill_light,
+		mist_mat, post_mat, mat_world, grass_sys.grass_mat
+	)
 
 
 func _on_window_resize() -> void:
@@ -341,37 +212,35 @@ func _on_window_resize() -> void:
 	post_mat.set_shader_parameter("u_out_size", Vector2(dw, dh))
 	if ao_mat != null:
 		ao_mat.set_shader_parameter("u_px", Vector2(1.0 / float(iw), 1.0 / float(ih)))
-	if dof_mat != null and dof_enabled:
+	if dof_mat != null:
 		dof_mat.set_shader_parameter("u_px", Vector2(1.0 / float(iw), 1.0 / float(ih)))
 
 
 func _process(delta: float) -> void:
 	var rdt := minf(delta, 0.05)
-	_time += rdt
 
 	if not paused:
 		for _s in range(sim_speed):
 			game.step_sim(rdt)
 
-	_update_grass_trampling()
+	grass_sys.update_trampling(game)
 	_update_camera()
 
 	screen_fade = minf(1.0, screen_fade + rdt * 1.45)
 	post_mat.set_shader_parameter("u_sub", sub_texel)
 	post_mat.set_shader_parameter("u_dither_ofs", dither_ofs)
-	post_mat.set_shader_parameter("u_grade", Vector4(0.96, 0.90, 0.34, screen_fade))
-	post_mat.set_shader_parameter("u_lift", Vector3(0.022, 0.024, 0.018))
+	weather_ctrl.update(rdt, paused, screen_fade)
 
 	if ao_mat != null:
 		var px_w := cam.size / maxf(float(sub_vp.size.y), 1.0)
 		var ao_rad := clampf(0.85 / maxf(px_w, 0.005), 8.0, 26.0)
 		ao_mat.set_shader_parameter("u_ao", Vector3(1.0, ao_rad, 0.7))
 		ao_mat.set_shader_parameter("u_dither", dither_ofs)
-		ao_mat.set_shader_parameter("u_dof_fade", Vector4(CAM_DIST, 3.6, 12.5, 1.0 if dof_enabled else 0.0))
+		ao_mat.set_shader_parameter("u_dof_fade", Vector4(CAM_DIST, dof_far_start, dof_far_range, 1.0 if dof_enabled else 0.0))
 
 	if dof_mat != null and dof_enabled:
-		var max_r := clampf(minf(float(sub_vp.size.y), float(sub_vp.size.x) * 1.6) * 0.012, 2.0, 7.0)
-		dof_mat.set_shader_parameter("u_dof", Vector4(CAM_DIST, 3.6, 12.5, max_r))
+		var max_r := clampf(minf(float(sub_vp.size.y), float(sub_vp.size.x) * 1.6) * 0.012, 2.0, dof_max_radius)
+		dof_mat.set_shader_parameter("u_dof", Vector4(CAM_DIST, dof_far_start, dof_far_range, max_r))
 		dof_mat.set_shader_parameter("u_near", Vector4(9.0, 16.0, 0.6, 0.25))
 		dof_mat.set_shader_parameter("u_dither", dither_ofs)
 
@@ -413,6 +282,14 @@ func _update_camera() -> void:
 	cam.look_at_from_position(target + c_dir * CAM_DIST, target, Vector3.UP)
 
 
+func get_weather_label() -> String:
+	return weather_ctrl.get_button_label()
+
+
+func is_lightning_enabled() -> bool:
+	return weather_ctrl.lightning_enabled
+
+
 func toggle_pause() -> void:
 	paused = not paused
 	game.play_ui_click()
@@ -432,6 +309,16 @@ func toggle_dof() -> void:
 	dof_enabled = not dof_enabled
 	if dof_mesh != null:
 		dof_mesh.visible = dof_enabled
+	game.play_ui_click()
+
+
+func toggle_weather() -> void:
+	weather_ctrl.cycle_weather()
+	game.play_ui_click()
+
+
+func toggle_lightning() -> void:
+	weather_ctrl.toggle_lightning()
 	game.play_ui_click()
 
 

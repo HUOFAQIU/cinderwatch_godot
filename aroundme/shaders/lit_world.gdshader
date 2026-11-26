@@ -6,6 +6,7 @@ uniform sampler2DArray u_tex_h : filter_linear_mipmap, repeat_enable;
 uniform float u_bump = 0.055;
 uniform float u_wind = 1.0;
 uniform bool u_is_instanced = false;
+uniform float u_wet = 0.0;
 
 // Biome cover (snow / moss / ash / sand)
 uniform vec4 u_cover = vec4(0.0, 0.55, 0.3, 0.5);
@@ -96,6 +97,10 @@ void fragment() {
 		}
 	}
 
+	if (u_wet > 0.01) {
+		base_col = mix(base_col, base_col * vec3(0.68, 0.72, 0.78), u_wet * 0.65);
+		rough = mix(rough, max(0.18, rough * 0.38), u_wet);
+	}
 	ALBEDO = base_col;
 	ROUGHNESS = rough;
 	METALLIC = (abs(layer - 5.0) < 0.5) ? 0.55 : 0.0;
