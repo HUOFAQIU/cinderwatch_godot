@@ -6,6 +6,7 @@ uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
 uniform vec2 u_px = vec2(0.0010417, 0.0018519);
 uniform vec3 u_ao = vec3(1.0, 18.0, 0.7); // x=strength, y=radius(px), z=max_dist_sq
 uniform vec2 u_dither = vec2(0.0);
+uniform vec4 u_dof_fade = vec4(78.0, 3.6, 12.5, 1.0); // x=focus_dist, y=far_start, z=far_range, w=dof_enabled
 
 float bayer2(vec2 a) {
 	a = floor(a);
@@ -78,6 +79,11 @@ void fragment() {
 		float vv = dot(V, V);
 		occ += max(0.0, dot(V, N) - 0.035) / (vv + 0.03) * step(vv, u_ao.z);
 	}
-	float ao = clamp(1.0 - occ * u_ao.x * 0.1, 0.0, 1.0);
+	// Smoothly attenuate sharp AO inside far DoF blur zone so AO creases don't stamp crisp dark halos over blurred trees
+	vec4 vp_c = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, d, 1.0);
+	float z_dist = -vp_c.z / vp_c.w;
+	float dof_t = clamp((z_dist - u_dof_fade.x - u_dof_fade.y) / max(u_dof_fade.z, 0.01), 0.0, 1.0) * u_dof_fade.w;
+	float ao_fade = mix(1.0, 0.22, smoothstep(0.0, 0.75, dof_t));
+	float ao = clamp(1.0 - occ * u_ao.x * ao_fade * 0.1, 0.0, 1.0);
 	ALBEDO = vec3(ao);
 }

@@ -1,7 +1,7 @@
 class_name AroundMeMain
 extends Node
 
-# Self-contained Dusk Meadow survival mode under res://aroundme/
+# Self-contained Morning Forest Clearing survival mode under res://aroundme/
 # Full Cinderwatch half-res texel-snapped pixel-art pipeline with locked centered camera.
 
 const CAM_YAW := PI * 0.25
@@ -11,13 +11,6 @@ const BASE_VIEW_H := 25.0
 const MAX_IH := 620
 const MAX_PIX := 690000.0
 const MAX_WX := 320
-
-const BRAZIER_POSITIONS: Array[Vector3] = [
-	Vector3(-5.2, 0.0, -4.6),
-	Vector3(5.4, 0.0, -4.4),
-	Vector3(-4.8, 0.0, 5.2),
-	Vector3(5.0, 0.0, 4.8),
-]
 
 @onready var sub_vp: SubViewport = %SubViewport
 @onready var world: Node3D = %World
@@ -39,8 +32,6 @@ var mat_unit: ShaderMaterial
 var tex_albedo: Texture2DArray
 var tex_height: Texture2DArray
 
-var brazier_lights: Array[OmniLight3D] = []
-var brazier_halo_mats: Array[ShaderMaterial] = []
 var grass_mat: ShaderMaterial
 var _grass_chars: Array[Vector4] = []
 
@@ -59,10 +50,9 @@ func _ready() -> void:
 	_init_shared_materials()
 	_apply_world_material(meadow_map)
 	_setup_viewport_and_post()
-	# Morning forest clearing: no artificial lanterns/braziers
 	_setup_weather()
 	_setup_grass_carpet()
-	game.init_game(mat_unit, mat_world, meadow_map)
+	game.init_game(mat_unit)
 	ui.init_ui(self, game, cam, sub_vp)
 	_on_window_resize()
 	get_viewport().size_changed.connect(_on_window_resize)
@@ -117,8 +107,6 @@ func _init_shared_materials() -> void:
 	mat_unit = ShaderMaterial.new()
 	mat_unit.shader = load("res://aroundme/shaders/lit_unit.gdshader")
 	mat_unit.set_shader_parameter("u_tex_a", tex_albedo)
-	mat_unit.set_shader_parameter("u_tex_h", tex_height)
-	mat_unit.set_shader_parameter("u_bump", 0.04)
 
 
 func _apply_world_material(n: Node) -> void:
@@ -161,8 +149,9 @@ func _setup_viewport_and_post() -> void:
 		mist_mat = ShaderMaterial.new()
 		mist_mat.shader = mist_sh
 		mist_mat.render_priority = 126
-		mist_mat.set_shader_parameter("u_mist_amb", Vector3(0.42, 0.54, 0.48))
+		mist_mat.set_shader_parameter("u_mist_amb", Vector3(0.52, 0.58, 0.46))
 		mist_mat.set_shader_parameter("u_mist", Vector4(-0.25, 0.45, 0.72, 0.065))
+		mist_mat.set_shader_parameter("u_light_count", 0)
 		mist_mesh.material_override = mist_mat
 		cam.add_child(mist_mesh)
 
@@ -177,119 +166,6 @@ func _setup_viewport_and_post() -> void:
 		dof_mat.render_priority = -20
 		dof_mesh.material_override = dof_mat
 		cam.add_child(dof_mesh)
-
-
-func _setup_braziers() -> void:
-	var flame_sh := load("res://aroundme/shaders/flame.gdshader") as Shader
-
-	# Shared GPU rising-ember particle resources (mirrors fx.tscn BeaconEmbersGPU)
-	var ember_mat := StandardMaterial3D.new()
-	ember_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	ember_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	ember_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-	ember_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	ember_mat.vertex_color_use_as_albedo = true
-	ember_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	ember_mat.billboard_keep_scale = true
-	if ResourceLoader.exists("res://aroundme/assets/textures/particle_soft.png"):
-		ember_mat.albedo_texture = load("res://aroundme/assets/textures/particle_soft.png")
-
-	var ember_proc := ParticleProcessMaterial.new()
-	ember_proc.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	ember_proc.emission_box_extents = Vector3(0.24, 0.12, 0.24)
-	ember_proc.direction = Vector3(0.22, 1.0, 0.12)
-	ember_proc.spread = 28.0
-	ember_proc.initial_velocity_min = 0.75
-	ember_proc.initial_velocity_max = 1.8
-	ember_proc.gravity = Vector3(0.32, 0.35, 0.14)
-	ember_proc.damping_min = 0.25
-	ember_proc.damping_max = 0.55
-	ember_proc.scale_min = 0.06
-	ember_proc.scale_max = 0.12
-	var grad := Gradient.new()
-	grad.offsets = PackedFloat32Array([0.0, 0.25, 0.72, 1.0])
-	grad.colors = PackedColorArray([
-		Color(1.4, 1.35, 0.65, 0.0),
-		Color(1.3, 1.22, 0.52, 0.65),
-		Color(0.95, 1.05, 0.48, 0.42),
-		Color(0.65, 0.85, 0.42, 0.0),
-	])
-	var grad_tex := GradientTexture1D.new()
-	grad_tex.gradient = grad
-	ember_proc.color_ramp = grad_tex
-	var ember_quad := QuadMesh.new()
-	ember_quad.size = Vector2.ONE
-
-	for i in range(BRAZIER_POSITIONS.size()):
-		var bp := BRAZIER_POSITIONS[i]
-		var gy := game.height_at(bp.x, bp.z)
-		var fpos := Vector3(bp.x, gy + 1.12, bp.z)
-
-		var ol := OmniLight3D.new()
-		ol.position = fpos + Vector3(0.0, 0.22, 0.0)
-		ol.light_color = Color(1.0, 0.88, 0.55, 1.0)
-		ol.light_energy = 1.65
-		ol.omni_range = 7.5
-		ol.omni_attenuation = 1.7
-		
-		#ol.shadow_enabled = false
-		ol.shadow_enabled = true
-		ol.omni_shadow_mode = OmniLight3D.SHADOW_CUBE
-		ol.shadow_bias = 0.25
-		ol.shadow_normal_bias = 1.2
-		
-		world.add_child(ol)
-		brazier_lights.append(ol)
-
-		if flame_sh != null:
-			# Soft warm brazier halo (render_priority 7, behind flame)
-			var hq := QuadMesh.new()
-			hq.size = Vector2(2.4, 2.4)
-			var hm := MeshInstance3D.new()
-			hm.mesh = hq
-			hm.position = fpos + Vector3(0.0, 0.04, 0.0)
-			hm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			var hmat := ShaderMaterial.new()
-			hmat.shader = flame_sh
-			hmat.render_priority = 7
-			hmat.set_shader_parameter("u_seed", float(i) * 2.17)
-			hmat.set_shader_parameter("u_intensity", 0.30)
-			hmat.set_shader_parameter("u_is_halo", 1.0)
-			hmat.set_shader_parameter("u_is_instanced", false)
-			hmat.set_shader_parameter("u_col", Vector3(1.15, 0.94, 0.42))
-			hm.material_override = hmat
-			world.add_child(hm)
-			brazier_halo_mats.append(hmat)
-
-			# Crisp brazier flame (render_priority 8)
-			var qm := QuadMesh.new()
-			qm.size = Vector2(0.36, 0.46)
-			var fm := MeshInstance3D.new()
-			fm.mesh = qm
-			fm.position = fpos + Vector3(0.0, 0.04, 0.0)
-			fm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			var fmat := ShaderMaterial.new()
-			fmat.shader = flame_sh
-			fmat.render_priority = 8
-			fmat.set_shader_parameter("u_seed", float(i) * 1.93 + 0.4)
-			fmat.set_shader_parameter("u_intensity", 0.72)
-			fmat.set_shader_parameter("u_is_halo", 0.0)
-			fmat.set_shader_parameter("u_is_instanced", false)
-			fmat.set_shader_parameter("u_col", Vector3(1.0, 0.88, 0.45))
-			fm.material_override = fmat
-			world.add_child(fm)
-
-		# Rising GPU ember sparks drifting with dusk breeze
-		var gp := GPUParticles3D.new()
-		gp.position = fpos + Vector3(0.0, 0.12, 0.0)
-		gp.amount = 6
-		gp.lifetime = 2.2
-		gp.preprocess = 0.6
-		gp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		gp.material_override = ember_mat
-		gp.process_material = ember_proc
-		gp.draw_pass_1 = ember_quad
-		world.add_child(gp)
 
 
 func _setup_weather() -> void:
@@ -325,6 +201,8 @@ func _setup_weather() -> void:
 	wx_mat.set_shader_parameter("u_al_b", Vector3(1.0, 2.2, 0.3))
 	wx_mat.set_shader_parameter("u_ya", Vector2(-1.5, 11.0))
 	wx_mat.set_shader_parameter("u_yb", Vector2(-0.5, 6.5))
+	wx_mat.set_shader_parameter("u_light_count", 0)
+	wx_mat.set_shader_parameter("u_focus_dist", CAM_DIST)
 
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
@@ -351,11 +229,6 @@ func _setup_grass_carpet() -> void:
 	if g_sh == null:
 		return
 
-	# Hide old sparse triangular weeds so the dense painterly grass carpet takes over cleanly
-	var old_weeds := meadow_map.get_node_or_null("MeadowWeeds") as Node3D
-	if old_weeds != null:
-		old_weeds.visible = false
-
 	_grass_chars.resize(64)
 	for ci in range(64):
 		_grass_chars[ci] = Vector4(0.0, -999.0, 0.0, 0.1)
@@ -374,8 +247,8 @@ func _setup_grass_carpet() -> void:
 	grass_mat.set_shader_parameter("wind_noise", _make_seamless_noise(303, 0.024, 128))
 	grass_mat.set_shader_parameter("cloud_noise", _make_seamless_noise(404, 0.012, 128))
 
-	# Sync sunset directional light vector for cloud shadow projection
-	var sun := world.get_node_or_null("SunsetLight") as DirectionalLight3D
+	# Sync morning sun directional light vector for cloud shadow projection
+	var sun := world.get_node_or_null("MorningSunLight") as DirectionalLight3D
 	if sun != null:
 		grass_mat.set_shader_parameter("u_light_dir", -sun.global_basis.z)
 
@@ -427,7 +300,7 @@ func _setup_grass_carpet() -> void:
 		mm.buffer = buf
 
 	var mmi := MultiMeshInstance3D.new()
-	mmi.name = "DuskGrassCarpet"
+	mmi.name = "ForestGrassCarpet"
 	mmi.multimesh = mm
 	mmi.material_override = grass_mat
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -486,24 +359,24 @@ func _process(delta: float) -> void:
 		for _s in range(sim_speed):
 			game.step_sim(rdt)
 
-	_update_braziers()
 	_update_grass_trampling()
 	_update_camera()
 
 	screen_fade = minf(1.0, screen_fade + rdt * 1.45)
 	post_mat.set_shader_parameter("u_sub", sub_texel)
 	post_mat.set_shader_parameter("u_dither_ofs", dither_ofs)
-	post_mat.set_shader_parameter("u_grade", Vector4(1.02, 1.04, 0.48, screen_fade))
-	post_mat.set_shader_parameter("u_lift", Vector3(0.016, 0.024, 0.022))
+	post_mat.set_shader_parameter("u_grade", Vector4(0.96, 0.90, 0.34, screen_fade))
+	post_mat.set_shader_parameter("u_lift", Vector3(0.022, 0.024, 0.018))
 
 	if ao_mat != null:
 		var px_w := cam.size / maxf(float(sub_vp.size.y), 1.0)
 		var ao_rad := clampf(0.85 / maxf(px_w, 0.005), 8.0, 26.0)
 		ao_mat.set_shader_parameter("u_ao", Vector3(1.0, ao_rad, 0.7))
 		ao_mat.set_shader_parameter("u_dither", dither_ofs)
+		ao_mat.set_shader_parameter("u_dof_fade", Vector4(CAM_DIST, 3.6, 12.5, 1.0 if dof_enabled else 0.0))
 
 	if dof_mat != null and dof_enabled:
-		var max_r := clampf(minf(float(sub_vp.size.y), float(sub_vp.size.x) * 1.6) * 0.0145, 2.0, 9.0)
+		var max_r := clampf(minf(float(sub_vp.size.y), float(sub_vp.size.x) * 1.6) * 0.012, 2.0, 7.0)
 		dof_mat.set_shader_parameter("u_dof", Vector4(CAM_DIST, 3.6, 12.5, max_r))
 		dof_mat.set_shader_parameter("u_near", Vector4(9.0, 16.0, 0.6, 0.25))
 		dof_mat.set_shader_parameter("u_dither", dither_ofs)
@@ -519,38 +392,6 @@ func _process(delta: float) -> void:
 		game.perf_batch_ms,
 		sub_vp.size
 	)
-
-
-func _update_braziers() -> void:
-	var m_pos: Array[Vector3] = []
-	var m_col: Array[Vector3] = []
-	m_pos.resize(16); m_col.resize(16)
-	var w_pos: Array[Vector3] = []
-	var w_col: Array[Vector3] = []
-	w_pos.resize(12); w_col.resize(12)
-
-	var n := brazier_lights.size()
-	for i in range(n):
-		var flk := 0.88 + 0.12 * sin(_time * 8.3 + float(i) * 2.1) * cos(_time * 13.7 + float(i) * 1.3)
-		var e := 1.65 * flk
-		brazier_lights[i].light_energy = e
-		if i < brazier_halo_mats.size():
-			brazier_halo_mats[i].set_shader_parameter("u_intensity", 0.16 * flk)
-		var p := brazier_lights[i].global_position
-		var c := Vector3(1.0, 0.88, 0.45) * (e * 0.10)
-		m_pos[i] = p; m_col[i] = c
-		if i < 12:
-			w_pos[i] = p; w_col[i] = c
-
-	if mist_mat != null:
-		mist_mat.set_shader_parameter("u_light_pos", m_pos)
-		mist_mat.set_shader_parameter("u_light_col", m_col)
-		mist_mat.set_shader_parameter("u_light_count", n)
-	if wx_mat != null:
-		wx_mat.set_shader_parameter("u_light_pos", w_pos)
-		wx_mat.set_shader_parameter("u_light_col", w_col)
-		wx_mat.set_shader_parameter("u_light_count", mini(n, 12))
-		wx_mat.set_shader_parameter("u_focus_dist", CAM_DIST)
 
 
 func _update_camera() -> void:

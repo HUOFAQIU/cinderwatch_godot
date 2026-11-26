@@ -1,22 +1,22 @@
 // Adapted from Dylearn's Grass.gdshader & clouds.gdshaderinc (MIT License)
-// Tuned for Cinderwatch AroundMe Dusk Meadow:
+// Tuned for Cinderwatch AroundMe Morning Forest Clearing:
 // - Seamless velvety overlapping pixel-art grass carpet (5fps stepped wind waves)
 // - Cohesive 3-patch lush green palette + subtle sunlit sprout accents
-// - Real-time 64-unit trampling displacement + soft dusk cloud shadows + warm brazier glow
+// - Real-time 64-unit trampling displacement + drifting morning cloud shadows
 
 shader_type spatial;
 render_mode depth_prepass_alpha, depth_draw_opaque;
 
 group_uniforms colours_and_textures;
 uniform sampler2D albedo_texture : source_color, filter_nearest;
-uniform vec4 albedo1 : source_color = vec4(0.28, 0.50, 0.11, 1.0);
+uniform vec4 albedo1 : source_color = vec4(0.32, 0.48, 0.14, 1.0);
 
-uniform vec4 albedo2 : source_color = vec4(0.42, 0.63, 0.16, 1.0);
+uniform vec4 albedo2 : source_color = vec4(0.46, 0.59, 0.19, 1.0);
 uniform float albedo2_scale = 0.065;
 uniform float albedo2_threshold = 0.52;
 uniform sampler2D albedo2_noise : repeat_enable;
 
-uniform vec4 albedo3 : source_color = vec4(0.35, 0.56, 0.13, 1.0);
+uniform vec4 albedo3 : source_color = vec4(0.39, 0.54, 0.16, 1.0);
 uniform float albedo3_scale = 0.055;
 uniform float albedo3_threshold = 0.50;
 uniform sampler2D albedo3_noise : repeat_enable;
@@ -59,14 +59,12 @@ const int CHARACTER_COUNT = 64;
 uniform vec4 character_positions[64];
 uniform int character_active_count = 0;
 
-group_uniforms dusk_clouds;
+group_uniforms morning_clouds;
 uniform bool clouds_enabled = true;
 uniform sampler2D cloud_noise : repeat_enable;
 uniform float cloud_scale = 22.0;
 uniform float cloud_world_y = 22.0;
 uniform float cloud_speed = 0.042;
-uniform float cloud_contrast = 1.55;
-uniform float cloud_threshold = 0.35;
 uniform vec2 cloud_direction = vec2(0.82, 0.57);
 uniform vec3 u_light_dir = vec3(0.75, -0.55, 0.36);
 uniform float cloud_shadow_min = 0.42;
@@ -257,10 +255,10 @@ void fragment() {
 	float tip_grad = mix(1.08, 0.84, uv.y);
 	col *= tip_grad;
 
-	// Gentle dusk treeline darkening far outside playable ring
+	// Subtle forest canopy shade far outside playable clearing
 	float r = length(object_origin.xz);
 	float edge_t = clamp((r - 22.0) / 10.0, 0.0, 1.0);
-	col = mix(col, col * 0.65, edge_t);
+	col = mix(col, col * 0.86, edge_t);
 
 	ALBEDO = col;
 	ROUGHNESS = 0.92;
@@ -290,7 +288,7 @@ void light() {
 			float bl = (hi > lo) ? smoothstep(lo, hi, diffuse_amount) : step(thresh, diffuse_amount);
 			stepped = clamp(mix(thresh, min(thresh + cut, 1.0), bl), 0.0, 1.0);
 		}
-		DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR / PI * stepped * 1.45;
+		DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR / PI * stepped * 1.24;
 	} else {
 		float att = clamp((NdotL * 0.65 + 0.35) * ATTENUATION, 0.0, 1.0);
 		DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR / PI * att * 1.25;

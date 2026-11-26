@@ -7,8 +7,6 @@ render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_sc
 // INSTANCE_CUSTOM = vec4(phase, swing, flash, mv)
 
 uniform sampler2DArray u_tex_a : filter_linear_mipmap, repeat_enable;
-uniform sampler2DArray u_tex_h : filter_linear_mipmap, repeat_enable;
-uniform float u_bump = 0.04;
 
 varying float v_flash;
 

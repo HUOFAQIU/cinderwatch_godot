@@ -1,13 +1,13 @@
 class_name AroundMeGame
 extends Node3D
 
-# Self-contained Dusk Meadow survival logic under res://aroundme/
+# Self-contained Morning Forest Clearing survival logic under res://aroundme/
 # High-capacity spatial-hash crowd simulation supporting 1000+ monsters walking in from outside the map.
 
 const SPAWN_RADIUS_MIN := 23.0
 const SPAWN_RADIUS_MAX := 30.5
 const MAX_MONS := 2000
-const BATCH_CAP := 320
+const BATCH_CAP := 512
 const MAX_DEBRIS := 260
 const MAX_SPARKS := 260
 const GRID_CELL := 1.25
@@ -74,7 +74,7 @@ var _sfx_idx: int = 0
 var _last_sfx_ms: Dictionary = {}
 
 
-func init_game(mat_unit: ShaderMaterial, _mat_world: ShaderMaterial, _meadow_map: Node3D) -> void:
+func init_game(mat_unit: ShaderMaterial) -> void:
 	_mat_unit = mat_unit
 	_init_audio()
 	_init_unit_batches()

@@ -16,8 +16,8 @@
 background_mode = 1
 background_color = Color(0.14, 0.22, 0.16, 1)
 ambient_light_source = 2
-ambient_light_color = Color(0.56, 0.72, 0.62, 1)
-ambient_light_energy = 0.56
+ambient_light_color = Color(0.66, 0.74, 0.66, 1)
+ambient_light_energy = 0.58
 glow_enabled = true
 glow_intensity = 0.28
 glow_strength = 0.65
@@ -39,10 +39,10 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 environment = SubResource("Environment_53d0w")
 
-[node name="SunsetLight" type="DirectionalLight3D" parent="SubViewport/World" unique_id=695105418]
+[node name="MorningSunLight" type="DirectionalLight3D" parent="SubViewport/World" unique_id=695105418]
 transform = Transform3D(-0.5407577, 0.5944564, -0.5951499, 0, 0.7071068, 0.7071068, 0.8411784, 0.3823734, -0.3828195, -24, 28, -16)
-light_color = Color(1, 0.94, 0.8, 1)
-light_energy = 1.85
+light_color = Color(1, 0.91, 0.72, 1)
+light_energy = 1.8
 shadow_enabled = true
 shadow_bias = 0.06
 shadow_normal_bias = 0.65
@@ -50,10 +50,10 @@ shadow_blur = 0.25
 directional_shadow_mode = 0
 directional_shadow_max_distance = 72.0
 
-[node name="TwilightFillLight" type="DirectionalLight3D" parent="SubViewport/World" unique_id=314569500]
+[node name="SkyFillLight" type="DirectionalLight3D" parent="SubViewport/World" unique_id=314569500]
 transform = Transform3D(0.6757246, -0.38584405, 0.62810874, 0, 0.8520725, 0.52342385, -0.7371541, -0.3536904, 0.5757664, 24, 20, 22)
-light_color = Color(0.55, 0.78, 1, 1)
-light_energy = 0.58
+light_color = Color(0.58, 0.8, 1, 1)
+light_energy = 0.56
 
 [node name="Camera3D" type="Camera3D" parent="SubViewport/World" unique_id=1661436570]
 unique_name_in_owner = true

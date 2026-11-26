@@ -10,7 +10,6 @@ uniform vec4 u_grade = vec4(1.0, 0.92, 0.55, 1.0); // x=exposure, y=saturation, 
 uniform vec3 u_lift = vec3(0.010, 0.016, 0.030);
 uniform float u_dither_levels = 28.0;
 uniform float u_grain = 0.035;
-uniform float u_dof_strength = 1.0;
 
 float hash12(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
