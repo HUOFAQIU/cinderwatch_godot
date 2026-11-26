@@ -32,6 +32,7 @@ var post_mat: ShaderMaterial
 var ao_mat: ShaderMaterial
 var mist_mat: ShaderMaterial
 var dof_mat: ShaderMaterial
+var dof_mesh: MeshInstance3D
 var wx_mat: ShaderMaterial
 var mat_world: ShaderMaterial
 var mat_unit: ShaderMaterial
@@ -39,6 +40,7 @@ var tex_albedo: Texture2DArray
 var tex_height: Texture2DArray
 
 var brazier_lights: Array[OmniLight3D] = []
+var brazier_halo_mats: Array[ShaderMaterial] = []
 
 var cam_base: float = BASE_VIEW_H
 var cam_aspect: float = 1.7778
@@ -46,6 +48,7 @@ var sub_texel := Vector2.ZERO
 var dither_ofs := Vector2.ZERO
 var screen_fade: float = 0.0
 var paused: bool = false
+var dof_enabled: bool = true
 var sim_speed: int = 1
 var _time: float = 0.0
 
@@ -162,7 +165,7 @@ func _setup_viewport_and_post() -> void:
 
 	var dof_sh := load("res://aroundme/shaders/atmo_dof.gdshader") as Shader
 	if dof_sh != null:
-		var dof_mesh := MeshInstance3D.new()
+		dof_mesh = MeshInstance3D.new()
 		dof_mesh.mesh = mq
 		dof_mesh.extra_cull_margin = 16384.0
 		dof_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -175,6 +178,45 @@ func _setup_viewport_and_post() -> void:
 
 func _setup_braziers() -> void:
 	var flame_sh := load("res://aroundme/shaders/flame.gdshader") as Shader
+
+	# Shared GPU rising-ember particle resources (mirrors fx.tscn BeaconEmbersGPU)
+	var ember_mat := StandardMaterial3D.new()
+	ember_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ember_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	ember_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	ember_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ember_mat.vertex_color_use_as_albedo = true
+	ember_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	ember_mat.billboard_keep_scale = true
+	if ResourceLoader.exists("res://aroundme/assets/textures/particle_soft.png"):
+		ember_mat.albedo_texture = load("res://aroundme/assets/textures/particle_soft.png")
+
+	var ember_proc := ParticleProcessMaterial.new()
+	ember_proc.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	ember_proc.emission_box_extents = Vector3(0.24, 0.12, 0.24)
+	ember_proc.direction = Vector3(0.22, 1.0, 0.12)
+	ember_proc.spread = 28.0
+	ember_proc.initial_velocity_min = 0.75
+	ember_proc.initial_velocity_max = 1.8
+	ember_proc.gravity = Vector3(0.32, 0.35, 0.14)
+	ember_proc.damping_min = 0.25
+	ember_proc.damping_max = 0.55
+	ember_proc.scale_min = 0.06
+	ember_proc.scale_max = 0.12
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.25, 0.72, 1.0])
+	grad.colors = PackedColorArray([
+		Color(2.6, 1.55, 0.45, 0.0),
+		Color(2.4, 1.15, 0.28, 0.95),
+		Color(1.6, 0.48, 0.12, 0.65),
+		Color(0.8, 0.18, 0.05, 0.0),
+	])
+	var grad_tex := GradientTexture1D.new()
+	grad_tex.gradient = grad
+	ember_proc.color_ramp = grad_tex
+	var ember_quad := QuadMesh.new()
+	ember_quad.size = Vector2.ONE
+
 	for i in range(BRAZIER_POSITIONS.size()):
 		var bp := BRAZIER_POSITIONS[i]
 		var gy := game.height_at(bp.x, bp.z)
@@ -184,28 +226,67 @@ func _setup_braziers() -> void:
 		ol.position = fpos + Vector3(0.0, 0.45, 0.0)
 		ol.light_color = Color(1.0, 0.60, 0.22, 1.0)
 		ol.light_energy = 4.6
-		ol.omni_range = 12.5
+		ol.omni_range = 15.0
 		ol.omni_attenuation = 1.6
-		ol.shadow_enabled = false
+		
+		#ol.shadow_enabled = false
+		ol.shadow_enabled = true
+		ol.omni_shadow_mode = OmniLight3D.SHADOW_CUBE
+		ol.shadow_bias = 0.25
+		ol.shadow_normal_bias = 1.2
+		
 		world.add_child(ol)
 		brazier_lights.append(ol)
 
 		if flame_sh != null:
+			# Soft warm brazier halo (render_priority 7, behind flame)
+			var hq := QuadMesh.new()
+			hq.size = Vector2(6.5, 6.5)
+			var hm := MeshInstance3D.new()
+			hm.mesh = hq
+			hm.position = fpos + Vector3(0.0, 0.18, 0.0)
+			hm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var hmat := ShaderMaterial.new()
+			hmat.shader = flame_sh
+			hmat.render_priority = 7
+			hmat.set_shader_parameter("u_seed", float(i) * 2.17)
+			hmat.set_shader_parameter("u_intensity", 0.30)
+			hmat.set_shader_parameter("u_is_halo", 1.0)
+			hmat.set_shader_parameter("u_is_instanced", false)
+			hmat.set_shader_parameter("u_col", Vector3(1.25, 0.56, 0.16))
+			hm.material_override = hmat
+			world.add_child(hm)
+			brazier_halo_mats.append(hmat)
+
+			# Crisp brazier flame (render_priority 8)
 			var qm := QuadMesh.new()
-			qm.size = Vector2(0.55, 0.82)
+			qm.size = Vector2(0.95, 1.45)
 			var fm := MeshInstance3D.new()
 			fm.mesh = qm
-			fm.position = fpos
+			fm.position = fpos + Vector3(0.0, 0.28, 0.0)
 			fm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			var fmat := ShaderMaterial.new()
 			fmat.shader = flame_sh
+			fmat.render_priority = 8
 			fmat.set_shader_parameter("u_seed", float(i) * 1.93 + 0.4)
-			fmat.set_shader_parameter("u_intensity", 1.15)
+			fmat.set_shader_parameter("u_intensity", 1.35)
 			fmat.set_shader_parameter("u_is_halo", 0.0)
 			fmat.set_shader_parameter("u_is_instanced", false)
 			fmat.set_shader_parameter("u_col", Vector3(1.0, 0.56, 0.18))
 			fm.material_override = fmat
 			world.add_child(fm)
+
+		# Rising GPU ember sparks drifting with dusk breeze
+		var gp := GPUParticles3D.new()
+		gp.position = fpos + Vector3(0.0, 0.12, 0.0)
+		gp.amount = 14
+		gp.lifetime = 1.75
+		gp.preprocess = 0.6
+		gp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		gp.material_override = ember_mat
+		gp.process_material = ember_proc
+		gp.draw_pass_1 = ember_quad
+		world.add_child(gp)
 
 
 func _setup_weather() -> void:
@@ -265,7 +346,7 @@ func _on_window_resize() -> void:
 	post_mat.set_shader_parameter("u_out_size", Vector2(dw, dh))
 	if ao_mat != null:
 		ao_mat.set_shader_parameter("u_px", Vector2(1.0 / float(iw), 1.0 / float(ih)))
-	if dof_mat != null:
+	if dof_mat != null and dof_enabled:
 		dof_mat.set_shader_parameter("u_px", Vector2(1.0 / float(iw), 1.0 / float(ih)))
 
 
@@ -292,7 +373,7 @@ func _process(delta: float) -> void:
 		ao_mat.set_shader_parameter("u_ao", Vector3(1.0, ao_rad, 0.7))
 		ao_mat.set_shader_parameter("u_dither", dither_ofs)
 
-	if dof_mat != null:
+	if dof_mat != null and dof_enabled:
 		var max_r := clampf(minf(float(sub_vp.size.y), float(sub_vp.size.x) * 1.6) * 0.0145, 2.0, 9.0)
 		dof_mat.set_shader_parameter("u_dof", Vector4(CAM_DIST, 3.6, 12.5, max_r))
 		dof_mat.set_shader_parameter("u_near", Vector4(9.0, 16.0, 0.6, 0.25))
@@ -322,8 +403,10 @@ func _update_braziers() -> void:
 	var n := brazier_lights.size()
 	for i in range(n):
 		var flk := 0.88 + 0.12 * sin(_time * 8.3 + float(i) * 2.1) * cos(_time * 13.7 + float(i) * 1.3)
-		var e := 4.8 * flk
+		var e := 6.8 * flk
 		brazier_lights[i].light_energy = e
+		if i < brazier_halo_mats.size():
+			brazier_halo_mats[i].set_shader_parameter("u_intensity", 0.42 * flk)
 		var p := brazier_lights[i].global_position
 		var c := Vector3(1.0, 0.58, 0.20) * (e * 0.13)
 		m_pos[i] = p; m_col[i] = c
@@ -379,6 +462,13 @@ func cycle_speed() -> void:
 
 func toggle_mute() -> void:
 	game.toggle_mute()
+
+
+func toggle_dof() -> void:
+	dof_enabled = not dof_enabled
+	if dof_mesh != null:
+		dof_mesh.visible = dof_enabled
+	game.play_ui_click()
 
 
 func _unhandled_input(event: InputEvent) -> void:

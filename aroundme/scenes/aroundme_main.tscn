@@ -1,16 +1,16 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://sim6v8sow78u"]
 
-[ext_resource type="Script" path="res://aroundme/scripts/aroundme_main.gd" id="1_m6844"]
+[ext_resource type="Script" uid="uid://chljky8ryux2r" path="res://aroundme/scripts/aroundme_main.gd" id="1_m6844"]
 [ext_resource type="PackedScene" path="res://aroundme/scenes/meadow_map.tscn" id="2_2bqx6"]
-[ext_resource type="Script" path="res://aroundme/scripts/aroundme_game.gd" id="3_x5m21"]
-[ext_resource type="Script" path="res://aroundme/scripts/aroundme_ui.gd" id="4_70sgx"]
-[ext_resource type="Theme" path="res://aroundme/assets/themes/pixel_theme.tres" id="5_blj52"]
-[ext_resource type="Texture2D" path="res://aroundme/assets/icons/banner.png" id="6_53d0w"]
-[ext_resource type="Texture2D" path="res://aroundme/assets/icons/flame.png" id="7_fn4jk"]
-[ext_resource type="Texture2D" path="res://aroundme/assets/icons/skull.png" id="8_vwtpn"]
-[ext_resource type="Texture2D" path="res://aroundme/assets/icons/helm.png" id="9_k76y7"]
-[ext_resource type="Texture2D" path="res://aroundme/assets/icons/pause.png" id="10_ipuer"]
-[ext_resource type="Texture2D" path="res://aroundme/assets/icons/sound.png" id="11_fn4jk"]
+[ext_resource type="Script" uid="uid://cpauipbf01653" path="res://aroundme/scripts/aroundme_game.gd" id="3_x5m21"]
+[ext_resource type="Script" uid="uid://pec6r0sofrxg" path="res://aroundme/scripts/aroundme_ui.gd" id="4_70sgx"]
+[ext_resource type="Theme" uid="uid://uqcx1582ea50" path="res://aroundme/assets/themes/pixel_theme.tres" id="5_blj52"]
+[ext_resource type="Texture2D" uid="uid://bt2njqs2xehgo" path="res://aroundme/assets/icons/banner.png" id="6_53d0w"]
+[ext_resource type="Texture2D" uid="uid://bo7tv2dhky2g4" path="res://aroundme/assets/icons/flame.png" id="7_fn4jk"]
+[ext_resource type="Texture2D" uid="uid://23sk88nyppxq" path="res://aroundme/assets/icons/skull.png" id="8_vwtpn"]
+[ext_resource type="Texture2D" uid="uid://cdvihvs2gqf2j" path="res://aroundme/assets/icons/helm.png" id="9_k76y7"]
+[ext_resource type="Texture2D" uid="uid://dgunpmfbwnjar" path="res://aroundme/assets/icons/pause.png" id="10_ipuer"]
+[ext_resource type="Texture2D" uid="uid://bjqinqpjoda5i" path="res://aroundme/assets/icons/sound.png" id="11_fn4jk"]
 
 [sub_resource type="Environment" id="Environment_53d0w"]
 background_mode = 1
@@ -63,7 +63,7 @@ size = 25.0
 near = 1.0
 far = 210.0
 
-[node name="MeadowMap" type="Node3D" parent="SubViewport/World" unique_id=1538544234 instance=ExtResource("2_2bqx6")]
+[node name="MeadowMap" parent="SubViewport/World" unique_id=1538544234 instance=ExtResource("2_2bqx6")]
 unique_name_in_owner = true
 
 [node name="AroundMeGame" type="Node3D" parent="SubViewport/World" unique_id=1281625064]
@@ -186,7 +186,7 @@ text = "0"
 layout_mode = 0
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -82.0
+offset_left = -130.0
 offset_top = 5.0
 offset_right = -5.0
 offset_bottom = 22.0
@@ -210,6 +210,13 @@ unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
 icon = ExtResource("11_fn4jk")
+
+[node name="DofBtn" type="Button" parent="AroundMeUI/HudRoot/CtrlBox" unique_id=344168668]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 0)
+layout_mode = 2
+focus_mode = 0
+text = "DOF:ON"
 
 [node name="PerfPlate" type="PanelContainer" parent="AroundMeUI/HudRoot" unique_id=1046652962]
 unique_name_in_owner = true

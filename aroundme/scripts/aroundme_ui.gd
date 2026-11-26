@@ -30,6 +30,7 @@ var _ic_mute: Texture2D
 @onready var pause_btn: Button = %PauseBtn
 @onready var speed_btn: Button = %SpeedBtn
 @onready var mute_btn: Button = %MuteBtn
+@onready var dof_btn: Button = %DofBtn
 @onready var perf_plate: PanelContainer = %PerfPlate
 @onready var perf_line1: Label = %PerfLine1
 @onready var perf_line2: Label = %PerfLine2
@@ -59,6 +60,7 @@ func init_ui(main_ref: AroundMeMain, game_ref: AroundMeGame, cam_ref: Camera3D, 
 	pause_btn.pressed.connect(func(): _main.toggle_pause())
 	speed_btn.pressed.connect(func(): _main.cycle_speed())
 	mute_btn.pressed.connect(func(): _main.toggle_mute())
+	dof_btn.pressed.connect(func(): _main.toggle_dof())
 	perf_plate.visible = false
 	banner_lbl.visible = false
 
@@ -97,6 +99,7 @@ func update_ui(_dt: float) -> void:
 	speed_btn.text = "%dx" % _main.sim_speed
 	pause_btn.icon = _ic_play if _main.paused else _ic_pause
 	mute_btn.icon = _ic_mute if _game.muted else _ic_sound
+	dof_btn.text = "DOF:ON" if _main.dof_enabled else "DOF:OFF"
 
 	if _game.soldier_dead:
 		banner_lbl.visible = true

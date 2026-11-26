@@ -1,6 +1,6 @@
-[gd_resource type="Theme" format=3]
+[gd_resource type="Theme" format=3 uid="uid://uqcx1582ea50"]
 
-[ext_resource type="FontFile" path="res://aroundme/assets/fonts/pixel9.fnt" id="1_qss3m"]
+[ext_resource type="FontFile" uid="uid://dch3mdlcvcqtb" path="res://aroundme/assets/fonts/pixel9.fnt" id="1_qss3m"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xylp7"]
 content_margin_left = 4.0
